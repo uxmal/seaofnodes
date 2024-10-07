@@ -1,0 +1,152 @@
+﻿using Reko.Core;
+using Reko.Core.Code;
+using Reko.Core.Expressions;
+
+namespace SeaOfNodes.UnitTests.Loading;
+
+public class ProcedureBuilder : ExpressionEmitter
+{
+    private static readonly Block dummy = new Block(null!, null!, "@DUMMY@");
+
+    private readonly Procedure proc;
+    private readonly Dictionary<string, Block> labeledBlocks;
+    private readonly List<(Block, string)> fixups;
+    private Block? blockCur;
+    private Address addr;
+
+    public ProcedureBuilder(
+        IProcessorArchitecture arch,
+        string name, 
+        Address addr)
+    {
+        this.proc = new Procedure(arch, name, addr, arch.CreateFrame());
+        this.labeledBlocks = new Dictionary<string, Block>();
+        this.fixups = new List<(Block, string)>();
+        this.blockCur = null;
+        this.addr = addr;
+    }
+
+    public Procedure ToProcedure()
+    {
+        if (blockCur is not null)
+        {
+            proc.ControlGraph.AddEdge(blockCur, proc.ExitBlock);
+        }
+        ResolveFixups();
+        return proc;
+    }
+
+    private void ResolveFixups()
+    {
+        foreach (var (block, label) in fixups)
+        {
+            var stm = block.Statements.Last();
+            switch (stm.Instruction)
+            {
+            case Branch branch:
+                var target = this.labeledBlocks[label];
+                stm.Instruction = new Branch(branch.Condition, target);
+                proc.ControlGraph.AddEdge(block, target);
+                break;
+            default: throw new NotImplementedException();
+            }
+        }
+    }
+
+    public void Label(string? name = null)
+    {
+        name ??= $"l{addr.Offset:X8}";
+        var blockNew = proc.AddBlock(addr, name);
+        if (blockCur is not null)
+        {
+            proc.ControlGraph.AddEdge(blockCur, blockNew);
+        }
+        blockCur = blockNew;
+    }
+
+    private void Emit(Instruction instr)
+    {
+        EnsureBlock(null).Statements.Add(addr, instr);
+        addr += 4;
+    }
+
+    private Block EnsureBlock(string? name)
+    {
+        if (blockCur is not null)
+            return blockCur;
+        name ??= $"l{addr}";
+        var blockNew = proc.AddBlock(addr, name);
+        if (proc.EntryBlock.Succ.Count == 0)
+        {
+            proc.ControlGraph.AddEdge(proc.EntryBlock, blockNew);
+        }
+        blockCur = blockNew;
+        return blockNew;
+    }
+
+    public void Assign(RegisterStorage dst, Expression src)
+    {
+        var id = proc.Frame.EnsureRegister(dst);
+        Emit(new Assignment(id, src));
+    }
+
+    public void Assign(RegisterStorage dst, long value)
+    {
+        var id = proc.Frame.EnsureRegister(dst);
+        Emit(new Assignment(id, Constant.Create(id.DataType, value)));
+    }
+
+    public void Branch(Expression predicate, string label)
+    {
+        fixups.Add((EnsureBlock(null), label));
+        Emit(new Branch(predicate, dummy));
+    }
+
+    public CallBuilder Call(Expression dst)
+    {
+        var site = new CallSite(0, 0);
+        var call = new CallInstruction(dst, site);
+        Emit(call);
+        return new CallBuilder(call);
+    }
+
+    public void Return()
+    {
+        Emit(new ReturnInstruction());
+        proc.ControlGraph.AddEdge(EnsureBlock(null), proc.ExitBlock);
+        blockCur = null;
+    }
+
+    public void Use(Storage stg)
+    {
+        var id = proc.Frame.EnsureIdentifier(stg);
+        var eblock = proc.ExitBlock;
+        eblock.Statements.Add(
+            eblock.Address, 
+            new UseInstruction(id));
+    }
+
+    public class CallBuilder
+    {
+        private CallInstruction call;
+
+        public CallBuilder(CallInstruction call)
+        {
+            this.call = call;
+        }
+
+        public CallBuilder Def(Storage stg, Identifier id)
+        {
+            call.Definitions.Add(new CallBinding(stg, id));
+            return this;
+        }
+
+        public CallBuilder Use(Storage stg, Expression e)
+        {
+            call.Uses.Add(new CallBinding(stg, e));
+            return this;
+        }
+    }
+
+
+}
