@@ -16,7 +16,7 @@ public class UseNode : Node
 
     public Storage Storage { get; }
 
-    protected override string Name => $"Use_{NodeId}";
+    protected override string Name => $"use_{Storage}";
 
     protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
     {

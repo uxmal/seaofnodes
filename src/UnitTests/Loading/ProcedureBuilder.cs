@@ -84,11 +84,17 @@ public class ProcedureBuilder : ExpressionEmitter
         return blockNew;
     }
 
-    public void Assign(RegisterStorage dst, Expression src)
+    public void Assign(Identifier dst, Expression src)
     {
-        var id = proc.Frame.EnsureRegister(dst);
-        Emit(new Assignment(id, src));
+        Emit(new Assignment(dst, src));
     }
+
+    public void Assign(Identifier dst, long src)
+    {
+        var cSrc = Constant.Create(dst.DataType, src);
+        Emit(new Assignment(dst, cSrc));
+    }
+
 
     public void Assign(RegisterStorage dst, long value)
     {
@@ -124,6 +130,12 @@ public class ProcedureBuilder : ExpressionEmitter
         eblock.Statements.Add(
             eblock.Address, 
             new UseInstruction(id));
+    }
+
+    public Identifier Reg(RegisterStorage reg)
+    {
+        var id = proc.Frame.EnsureRegister(reg);
+        return id;
     }
 
     public class CallBuilder

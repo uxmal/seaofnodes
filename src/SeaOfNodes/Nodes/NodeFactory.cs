@@ -1,5 +1,7 @@
 ﻿using Reko.Core;
 using Reko.Core.Expressions;
+using Reko.Core.Operators;
+using Reko.Core.Types;
 
 namespace SeaOfNodes.Nodes
 {
@@ -17,14 +19,9 @@ namespace SeaOfNodes.Nodes
         public StartNode StartNode { get; }
         public StopNode StopNode { get; }
 
-        public ConstantNode Constant(Constant value)
+        public Node Binary(DataType dataType, BinaryOperator @operator, Node leftNode, Node rightNode)
         {
-            return new ConstantNode(++nextNodeId, StartNode, value);
-        }
-
-        public PhiNode Phi(Block block, params Node[] nodes)
-        {
-            return new PhiNode(++nextNodeId, block, nodes);
+            return new BinaryNode(++nextNodeId, dataType, @operator, leftNode, rightNode);
         }
 
         public BlockNode Block(Block block)
@@ -32,10 +29,22 @@ namespace SeaOfNodes.Nodes
             return new BlockNode(++nextNodeId, block);
         }
 
-        internal UseNode Use(Storage storage, BlockNode blockNode, Node node)
+        public ConstantNode Constant(Constant value)
         {
-            return new UseNode(++nextNodeId, storage, blockNode, node);
+            return new ConstantNode(++nextNodeId, StartNode, value);
         }
+
+        public DefNode Def(Storage stg)
+        {
+            return new DefNode(++nextNodeId, StartNode, stg);
+        }
+
+
+        public PhiNode Phi(Block block, params Node[] nodes)
+        {
+            return new PhiNode(++nextNodeId, block, nodes);
+        }
+
 
         public ReturnNode Return(BlockNode blockNode)
         {
@@ -45,6 +54,12 @@ namespace SeaOfNodes.Nodes
         public ReturnNode Return(BlockNode blockNode, Node? retVal)
         {
             return new ReturnNode(++nextNodeId, blockNode, retVal);
+        }
+
+
+        internal UseNode Use(Storage storage, BlockNode blockNode, Node node)
+        {
+            return new UseNode(++nextNodeId, storage, blockNode, node);
         }
 
     }

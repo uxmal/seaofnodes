@@ -60,6 +60,7 @@ namespace SeaOfNodes.Loading
 //                    ProcessBlockEdge(block, succ);
                     wl.Add(succ);
                 }
+                sealedBlocks.Add(block);
             }
             ProcessExitBlock(procedure.ExitBlock);
             return factory.StopNode;
@@ -140,11 +141,12 @@ namespace SeaOfNodes.Loading
             return srcNode;
         }
 
-
-
         public Node VisitBinaryExpression(BinaryExpression binExp)
         {
-            throw new NotImplementedException();
+            var leftNode = binExp.Left.Accept(this);
+            var rightNode = binExp.Right.Accept(this);
+            var binNode = factory.Binary(binExp.DataType, binExp.Operator, leftNode, rightNode);
+            return binNode;
         }
 
         public Node VisitBranch(Branch branch)
@@ -210,7 +212,8 @@ namespace SeaOfNodes.Loading
 
         public Node VisitIdentifier(Identifier id)
         {
-            throw new NotImplementedException();
+            var node = ReadStorage(id.Storage, blockCur);
+            return node;
         }
 
         public Node VisitMemberPointerSelector(MemberPointerSelector mps)
@@ -333,7 +336,14 @@ namespace SeaOfNodes.Loading
 
         private Node ReadStorageRecursive(Storage stg, Block block)
         {
-            if (!sealedBlocks.Contains(block)) {
+            var preds = block.Procedure.ControlGraph.Predecessors(block);
+            if (preds.Count == 0)
+            {
+                // Live in parameter.
+                var node = factory.Def(stg);
+                return node;
+            }
+            if (block.Pred.Any(p => !sealedBlocks.Contains(p))) {
                 // Incomplete CFG
                 var phi = factory.Phi(block);
                 states[block].IncompletePhis[stg] = phi;
@@ -341,12 +351,12 @@ namespace SeaOfNodes.Loading
                 return phi;
             }
             Node? val;
-            var preds = block.Procedure.ControlGraph.Predecessors(block);
             if (preds.Count == 1)
             {
+                var pred = preds.First();
                 // Optimize the common case of one predecessor: No phi needed
-                if (!TryReadLocalStorage(stg, preds.First(), out val))
-                    val = ReadStorageRecursive(stg, block);
+                if (!TryReadLocalStorage(stg, pred, out val))
+                    val = ReadStorageRecursive(stg, pred);
             }
             else
             {
@@ -366,10 +376,10 @@ namespace SeaOfNodes.Loading
             {
                 phi.AddUse(ReadStorage(variable, pred));
             }
-            return tryRemoveTrivialPhi(phi);
+            return TryRemoveTrivialPhi(phi);
         }
 
-        private Node tryRemoveTrivialPhi(PhiNode phi)
+        private Node TryRemoveTrivialPhi(PhiNode phi)
         {
             Node? same = null;
             foreach (var op in phi.InNodes.Skip(1))
@@ -389,7 +399,7 @@ namespace SeaOfNodes.Loading
             foreach (var use in users)
             {
                 if (use is PhiNode usingPhi)
-                    tryRemoveTrivialPhi(usingPhi);
+                    TryRemoveTrivialPhi(usingPhi);
             }
             return same;
         }
