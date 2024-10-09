@@ -55,6 +55,10 @@ namespace SeaOfNodes.Nodes
             return new DefNode(++nextNodeId, node, stg);
         }
 
+        public MemoryAccessNode Mem(DataType dataType, Node memId, Node effectiveAddress)
+        {
+            return new MemoryAccessNode(++nextNodeId, dataType, memId, effectiveAddress);
+        }
 
         public PhiNode Phi(Block block, params Node[] nodes)
         {
@@ -79,6 +83,11 @@ namespace SeaOfNodes.Nodes
         public ReturnNode Return(CFNode ctrlNode, Node? retVal)
         {
             return new ReturnNode(++nextNodeId, ctrlNode, retVal);
+        }
+
+        public Node Slice(Node node, DataType dataType, ulong bitOffset)
+        {
+            return new SliceNode(++nextNodeId, node, dataType, (int)bitOffset);
         }
 
         public UnaryNode Unary(DataType dataType, UnaryOperator @operator, Node expNode)

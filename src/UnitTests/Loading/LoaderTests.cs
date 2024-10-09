@@ -14,6 +14,8 @@ namespace SeaOfNodes.UnitTests.Loading
         private static readonly RegisterStorage r1 = RegisterStorage.Reg32("r1", 1);
         private static readonly RegisterStorage r2 = RegisterStorage.Reg32("r2", 2);
 
+        private static readonly RegisterStorage r0l = RegisterStorage.Reg16("r0l", 0);
+
         private readonly FakeArchitecture arch;
 
         public LoaderTests()
@@ -267,5 +269,42 @@ namespace SeaOfNodes.UnitTests.Loading
             });
         }
 
+        [Test]
+        [Ignore("Refactor SSA graph builder first")]
+        public void Ldr_Slice()
+        {
+            var sExpected =
+            #region Expected
+                @"
+{ id:1, lbl:Start, in:[], out:[2,3,6,7] }
+
+{ id:7, lbl:def_Mem, in:[1], out:[8,11] }
+{ id:6, lbl:def_r0, in:[1], out:[8,10] }
+{ id:8, lbl:Mem, in:[7,6], out:[12] }
+
+{ id:3, lbl:<Entry>, in:[1], out:[5] }
+
+{ id:5, lbl:l00001000, in:[3], out:[9,4] }
+
+{ id:4, lbl:<Exit>, in:[5], out:[2,10,11,12] }
+
+{ id:12, lbl:use_r0l, in:[4,8], out:[2] }
+{ id:11, lbl:use_Mem, in:[4,7], out:[2] }
+{ id:10, lbl:use_r0, in:[4,6], out:[2] }
+
+{ id:2, lbl:Stop, in:[1,4,10,11,12], out:[] }
+
+";
+            #endregion
+
+            RunTest(sExpected, m =>
+            {
+                var r0 = m.Reg(LoaderTests.r0);
+                var r0l = m.Reg(LoaderTests.r0l);
+
+                m.Assign(r0l, m.Mem16(r0));
+                m.Return();
+            });
+        }
     }
 }
