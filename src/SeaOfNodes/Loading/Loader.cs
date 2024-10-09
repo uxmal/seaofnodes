@@ -4,12 +4,8 @@ using Reko.Core.Collections;
 using Reko.Core.Expressions;
 using Reko.Core.Graphs;
 using SeaOfNodes.Nodes;
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SeaOfNodes.Loading
 {
@@ -22,7 +18,7 @@ namespace SeaOfNodes.Loading
         private Dictionary<Block, BlockState> states;
         private Dictionary<Block, BlockNode> blockNodes;
         private HashSet<Block> sealedBlocks;
-        private Block blockCur;
+        private Block? blockCur;
         private HashSet<Storage> definedStorages;
         private HashSet<Storage> usedStorages;
         private BlockGraph cfg;
@@ -35,7 +31,6 @@ namespace SeaOfNodes.Loading
             this.definedStorages = [];
             this.usedStorages = [];
             this.sealedBlocks = [];
-            this.blockCur = default!;
             this.cfg = default!;
         }
 
@@ -57,7 +52,10 @@ namespace SeaOfNodes.Loading
                 ProcessBlock(block);
                 foreach (var succ in procedure.ControlGraph.Successors(block))
                 {
-//                    ProcessBlockEdge(block, succ);
+                    if (blockCur is not null)
+                    {
+                        AddEdge(blockNodes[blockCur], blockNodes[succ]);
+                    }
                     wl.Add(succ);
                 }
                 sealedBlocks.Add(block);
@@ -77,14 +75,6 @@ namespace SeaOfNodes.Loading
             foreach (var b in cfg.Blocks)
             {
                 blockNodes.Add(b, factory.Block(b));
-            }
-            foreach (var (b, node) in blockNodes)
-            {
-                foreach (var succ in cfg.Successors(b))
-                {
-                    var snode = blockNodes[succ];
-                    AddEdge(node, snode);
-                }
             }
         }
 
@@ -136,6 +126,7 @@ namespace SeaOfNodes.Loading
 
         public Node VisitAssignment(Assignment ass)
         {
+            Debug.Assert(blockCur is not null);
             var srcNode = ass.Src.Accept(this);
             WriteStorage(ass.Dst, blockCur, srcNode);
             return srcNode;
@@ -151,7 +142,15 @@ namespace SeaOfNodes.Loading
 
         public Node VisitBranch(Branch branch)
         {
-            throw new NotImplementedException();
+            Debug.Assert(blockCur is not null);
+            var bn = blockNodes[blockCur];
+            var predicate = branch.Condition.Accept(this);
+            var branchNode = factory.Branch(bn, predicate);
+            var falseProj = factory.Project(branchNode, 0);
+            var trueProj = factory.Project(branchNode, 1);
+            AddEdge(falseProj, blockNodes[blockCur.Succ[0]]);
+            AddEdge(trueProj, blockNodes[blockCur.Succ[1]]);
+            return branchNode;
         }
 
         public Node VisitCallInstruction(CallInstruction ci)
@@ -212,6 +211,7 @@ namespace SeaOfNodes.Loading
 
         public Node VisitIdentifier(Identifier id)
         {
+            Debug.Assert(blockCur is not null);
             var node = ReadStorage(id.Storage, blockCur);
             return node;
         }
@@ -258,11 +258,11 @@ namespace SeaOfNodes.Loading
 
         public Node VisitReturnInstruction(ReturnInstruction ret)
         {
+            Debug.Assert(blockCur is not null);
             var retVal = ret.Expression?.Accept(this);
             var bn = blockNodes[blockCur];
             var retNode = factory.Return(bn, retVal);
-            bn.AddUse(retNode);
-            AddEdge(retNode, factory.StopNode);
+            AddEdge(bn, retNode);
             return retNode;
         }
 
@@ -308,7 +308,9 @@ namespace SeaOfNodes.Loading
 
         public Node VisitUnaryExpression(UnaryExpression unary)
         {
-            throw new NotImplementedException();
+            var expNode = unary.Expression.Accept(this);
+            var unNode = factory.Unary(unary.DataType, unary.Operator, expNode);
+            return unNode;
         }
 
         public Node VisitUseInstruction(UseInstruction use)
@@ -346,6 +348,7 @@ namespace SeaOfNodes.Loading
             if (block.Pred.Any(p => !sealedBlocks.Contains(p))) {
                 // Incomplete CFG
                 var phi = factory.Phi(block);
+                AddEdge(blockNodes[block], phi);
                 states[block].IncompletePhis[stg] = phi;
                 WriteStorage(stg, block, phi);
                 return phi;
@@ -362,6 +365,7 @@ namespace SeaOfNodes.Loading
             {
                 // Break potential cycles with operandless phi
                 var phi = factory.Phi(block);
+                AddEdge(blockNodes[block], phi);
                 WriteStorage(stg, block, phi);
                 val = AddPhiOperands(stg, phi);
             }
@@ -374,39 +378,48 @@ namespace SeaOfNodes.Loading
             // Determine operands from predecessors
             foreach (var pred in cfg.Predecessors(phi.Block))
             {
-                phi.AddUse(ReadStorage(variable, pred));
+                var var = ReadStorage(variable, pred);
+                phi.AddInput(var);
+                var.AddUse(phi);
             }
-            return TryRemoveTrivialPhi(phi);
+            return TryRemoveTrivialPhi(phi, variable);
         }
 
-        private Node TryRemoveTrivialPhi(PhiNode phi)
+        private Node TryRemoveTrivialPhi(PhiNode phi, Storage stg)
         {
             Node? same = null;
             foreach (var op in phi.InNodes.Skip(1))
             {
                 if (op == same || op == phi)
-                    continue; // Unique value or self−reference
+                    continue;   // Unique value or self−reference
                 if (same is not null)
                     return phi; // The phi merges at least two values: not trivial
                 same = op;
             }
             // The phi is unreachable or in the start block
             if (same is null)
-                throw new NotImplementedException("same = factory.Undef();");
+                same = factory.Def(stg);
             var users = phi.OutNodes.Where(n => n != phi); // Remember all users except the phi itself
-            ReplaceBy(phi, same); // Reroute all uses of phi to same and remove phi
-                                  // Try to recursively remove all phi users, which might have become trivial
+            ReplaceBy(users, phi, same); // Reroute all uses of phi to same and remove phi
+                                         // Try to recursively remove all phi users, which might have become trivial
             foreach (var use in users)
             {
                 if (use is PhiNode usingPhi)
-                    TryRemoveTrivialPhi(usingPhi);
+                    TryRemoveTrivialPhi(usingPhi, stg);
             }
             return same;
         }
 
-        private void ReplaceBy(PhiNode phi, Node same)
+        private void ReplaceBy(IEnumerable<Node> users, PhiNode phi, Node same)
         {
-            throw new NotImplementedException();
+            foreach (var user in users)
+            {
+                for (int i = 0; i < user.InNodes.Count; ++i)
+                {
+                    if (user.InNodes[i] == phi)
+                        user.SetInput(i, same);
+                }
+            }
         }
 
         private bool TryReadLocalStorage(Storage stg, Block block, [MaybeNullWhen(false)] out Node local)

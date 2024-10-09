@@ -11,6 +11,7 @@ public class ProcedureBuilder : ExpressionEmitter
     private readonly Procedure proc;
     private readonly Dictionary<string, Block> labeledBlocks;
     private readonly List<(Block, string)> fixups;
+    private Block? blockBranch;
     private Block? blockCur;
     private Address addr;
 
@@ -48,7 +49,7 @@ public class ProcedureBuilder : ExpressionEmitter
                 stm.Instruction = new Branch(branch.Condition, target);
                 proc.ControlGraph.AddEdge(block, target);
                 break;
-            default: throw new NotImplementedException();
+            default: throw new NotImplementedException(stm.Instruction.GetType().Name);
             }
         }
     }
@@ -57,6 +58,7 @@ public class ProcedureBuilder : ExpressionEmitter
     {
         name ??= $"l{addr.Offset:X8}";
         var blockNew = proc.AddBlock(addr, name);
+        labeledBlocks.Add(name, blockNew);
         if (blockCur is not null)
         {
             proc.ControlGraph.AddEdge(blockCur, blockNew);
@@ -76,6 +78,11 @@ public class ProcedureBuilder : ExpressionEmitter
             return blockCur;
         name ??= $"l{addr}";
         var blockNew = proc.AddBlock(addr, name);
+        if (blockBranch is not null)
+        {
+            proc.ControlGraph.AddEdge(blockBranch, blockNew);
+            blockBranch = null;
+        }
         if (proc.EntryBlock.Succ.Count == 0)
         {
             proc.ControlGraph.AddEdge(proc.EntryBlock, blockNew);
@@ -104,8 +111,10 @@ public class ProcedureBuilder : ExpressionEmitter
 
     public void Branch(Expression predicate, string label)
     {
-        fixups.Add((EnsureBlock(null), label));
+        this.blockBranch = EnsureBlock(null);
+        fixups.Add((blockBranch, label));
         Emit(new Branch(predicate, dummy));
+        blockCur = null;
     }
 
     public CallBuilder Call(Expression dst)

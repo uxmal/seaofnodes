@@ -23,7 +23,7 @@ namespace SeaOfNodes.Nodes
             foreach (Node? def in n.InNodes)
             {
                 sb.Append(sep);
-                sb.Append(def is null ? "null" : $"{def.NodeId}");
+                sb.Append(def is null ? "_" : $"{def.NodeId}");
                 sep = ",";
             }
             sb.Append("]");
@@ -33,7 +33,7 @@ namespace SeaOfNodes.Nodes
             foreach (Node use in n.OutNodes)
             {
                 sb.Append(sep);
-                sb.Append(use is null ? "null" : $"{use.NodeId}");
+                sb.Append(use is null ? "_" : $"{use.NodeId}");
                 sep = ",";
             }
             sb.Append("] ");

@@ -5,13 +5,14 @@ using Reko.Core.Types;
 
 namespace SeaOfNodes.Nodes
 {
-
     public class NodeFactory
     {
         private int nextNodeId;
 
         public NodeFactory()
         {
+            // StartNode always has node ID 1. We avoid 0 to detect
+            // uninitialized values.
             this.StartNode = new StartNode(++nextNodeId);
             this.StopNode = new StopNode(++nextNodeId, StartNode);
         }
@@ -27,6 +28,11 @@ namespace SeaOfNodes.Nodes
         public BlockNode Block(Block block)
         {
             return new BlockNode(++nextNodeId, block);
+        }
+
+        public BranchNode Branch(BlockNode ctrlNode, Node predicate)
+        {
+            return new BranchNode(++nextNodeId,  ctrlNode, predicate);
         }
 
         public ConstantNode Constant(Constant value)
@@ -45,6 +51,10 @@ namespace SeaOfNodes.Nodes
             return new PhiNode(++nextNodeId, block, nodes);
         }
 
+        public Node Project(IMultiNode node, int index)
+        {
+            return new ProjectionNode(++nextNodeId, node, index);
+        }
 
         public ReturnNode Return(BlockNode blockNode)
         {
@@ -56,11 +66,14 @@ namespace SeaOfNodes.Nodes
             return new ReturnNode(++nextNodeId, blockNode, retVal);
         }
 
+        public UnaryNode Unary(DataType dataType, UnaryOperator @operator, Node expNode)
+        {
+            return new UnaryNode(++nextNodeId, dataType, @operator, null, expNode);
+        }
 
-        internal UseNode Use(Storage storage, BlockNode blockNode, Node node)
+        public UseNode Use(Storage storage, BlockNode blockNode, Node node)
         {
             return new UseNode(++nextNodeId, storage, blockNode, node);
         }
-
     }
 }

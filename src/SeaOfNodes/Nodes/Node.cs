@@ -11,7 +11,7 @@ namespace SeaOfNodes.Nodes
     /// This abstract base class provides common 
     /// functionality for all nodes in the IR.
     /// </summary>
-    public abstract class Node
+    public abstract class Node : INode
     {
         private readonly List<Node?> inNodes;
         private readonly List<Node> outNodes;
@@ -70,6 +70,12 @@ namespace SeaOfNodes.Nodes
                 inNode?.AddUse(this);
             }
         }
+
+        public void SetInput(int i, Node same)
+        {
+            throw new NotImplementedException();
+        }
+
 
         public TextWriter Write(TextWriter writer)
         {
@@ -144,6 +150,5 @@ namespace SeaOfNodes.Nodes
 
         public virtual bool IsMultiHead() { return false; }
         public virtual bool IsMultiTail() { return false; }
-
     }
 }
