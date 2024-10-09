@@ -1,35 +1,34 @@
 ﻿
-namespace SeaOfNodes.Nodes
+namespace SeaOfNodes.Nodes;
+
+public class ReturnNode : CFNode
 {
-    public class ReturnNode : CFNode
+    private Node? retVal;
+
+    public ReturnNode(int nodeId, CFNode blockNode, Node? retVal = null)
+        : base(nodeId)
     {
-        private Node? retVal;
+        this.retVal = retVal;
+        AddInput(blockNode);
+        if (retVal is not null)
+            AddInput(retVal);
+    }
 
-        public ReturnNode(int nodeId, CFNode blockNode, Node? retVal = null)
-            : base(nodeId)
+    protected override string Name => "return";
+
+    protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
+    {
+        writer.Write("return");
+        if (retVal != null)
         {
-            this.retVal = retVal;
-            AddInput(blockNode);
-            if (retVal is not null)
-                AddInput(retVal);
+            writer.Write(" ");
+            retVal.Write(writer, visited);
         }
+        return writer;
+    }
 
-        protected override string Name => "return";
-
-        protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
-        {
-            writer.Write("return");
-            if (retVal != null)
-            {
-                writer.Write(" ");
-                retVal.Write(writer, visited);
-            }
-            return writer;
-        }
-
-        protected override Node? Simplify()
-        {
-            throw new NotImplementedException();
-        }
+    protected override Node? Simplify()
+    {
+        throw new NotImplementedException();
     }
 }

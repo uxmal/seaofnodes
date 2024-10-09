@@ -18,25 +18,27 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
     private Dictionary<Block, BlockNode> blockNodes;
     private Block blockCur;
     private CFNode? ctrlNode;   // The controlling control flow node.
+    private Procedure proc;
     private BlockGraph cfg;
 
-    public Loader()
+    public Loader(Procedure proc)
     {
         this.factory = new NodeFactory();
         this.blockNodes = [];
-        this.sgb = new SsaGraphBuilder(blockNodes, factory);
+        this.sgb = new SsaGraphBuilder(proc.Architecture, blockNodes, factory);
         this.blockCur = default!;
-        this.cfg = default!;
+        this.proc = proc;
+        this.cfg = proc.ControlGraph;
     }
 
-    public StopNode Load(Procedure procedure)
+    public StopNode Load()
     {
-        this.cfg = procedure.ControlGraph;
-        sgb.SealBlock(procedure.ExitBlock);
+        this.cfg = proc.ControlGraph;
+        sgb.SealBlock(proc.ExitBlock);
         CreateBlockNodes(this.cfg);
         var wl = new WorkList<Block>();
-        wl.Add(procedure.EntryBlock);
-        AddEdge(factory.StartNode, blockNodes[procedure.EntryBlock]);
+        wl.Add(proc.EntryBlock);
+        AddEdge(factory.StartNode, blockNodes[proc.EntryBlock]);
         var visited = new HashSet<Block>();
         while (wl.TryGetWorkItem(out var block))
         {
@@ -46,7 +48,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
             this.ctrlNode = blockNodes[block];
             sgb.EnterBlock(block);
             ProcessBlock(block);
-            foreach (var succ in procedure.ControlGraph.Successors(block))
+            foreach (var succ in cfg.Successors(block))
             {
                 if (ctrlNode is not null)
                 {
@@ -56,7 +58,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
             }
             sgb.SealBlock(block);
         }
-        ProcessExitBlock(procedure.ExitBlock);
+        ProcessExitBlock(proc.ExitBlock);
         return factory.StopNode;
     }
 

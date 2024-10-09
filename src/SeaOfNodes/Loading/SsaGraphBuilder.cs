@@ -1,5 +1,6 @@
 ﻿using Reko.Core;
 using Reko.Core.Expressions;
+using Reko.Core.Lib;
 using SeaOfNodes.Nodes;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -8,6 +9,7 @@ namespace SeaOfNodes.Loading;
 
 public class SsaGraphBuilder
 {
+    private readonly IProcessorArchitecture arch;
     private readonly NodeFactory factory;
     private readonly Dictionary<Block, BlockNode> blockNodes;
     private readonly Dictionary<Block, BlockState> states;
@@ -15,9 +17,11 @@ public class SsaGraphBuilder
     private readonly HashSet<Storage> definedStorages;
 
     public SsaGraphBuilder(
+        IProcessorArchitecture arch,
         Dictionary<Block, BlockNode> blockNodes,
         NodeFactory factory)
     {
+        this.arch = arch;
         this.factory = factory;
         this.blockNodes = blockNodes;
         this.states = [];
@@ -59,13 +63,14 @@ public class SsaGraphBuilder
             aliases = [];
             defs.Add(stg.Domain, aliases);
         }
+        var range = stg.GetBitRange();
         for (int i = aliases.Count - 1; i >= 0; --i)
         {
             var def = aliases[i];
-            if (stg.Covers(def.Storage))
+            if (range.Covers(def.Range))
                 aliases.RemoveAt(i);
         }
-        aliases.Add(new(stg, node));
+        aliases.Add(new(range, node));
         return node;
     }
 
@@ -177,28 +182,29 @@ public class SsaGraphBuilder
         if (FindExactFragment(stg, aliases, out local))
             return true;
 
-        ulong ioffset = stg.BitAddress;
-        ulong iNext = ioffset;
+        var range = stg.GetBitRange();
+        int ioffset = range.Lsb;
+        int iNext = ioffset;
         var frags = new List<StorageAlias>();
-        for (; ioffset < stg.BitSize;)
+        for (; ioffset < range.Msb;)
         {
             var next = FindNextFragment(ioffset, aliases);
-            if (next.Storage is null)
+            if (next.Node is null)
                 break;
-            iNext = next.Storage.BitAddress;
+            iNext = next.Range.Lsb;
             if (iNext > ioffset)
             {
                 var subStg = MakeSubstorage(stg, ioffset, iNext - ioffset);
                 var subNode = ReadStorageRecursive(subStg, block);
-                frags.Add(new(subStg, subNode));
-                ioffset = subStg.BitAddress + subStg.BitSize;
+                var a = new StorageAlias(subStg.GetBitRange(), subNode);
+                frags.Add(a);
+                ioffset = a.Range.Msb;
             }
             else
             {
-                var sliceStg = MakeSlice(stg, ioffset, iNext - ioffset);
-                var sliceNode = factory.Slice(next.Node, sliceStg.DataType, ioffset);
-                frags.Add(new(sliceStg, sliceNode));
-                ioffset = sliceStg.BitAddress + sliceStg.BitSize;
+                var sliceAlias = MakeSlice(stg, next.Range, next.Node);
+                frags.Add(sliceAlias);
+                ioffset = sliceAlias.Range.Msb;
             }
         }
         Debug.Assert(frags.Count >= 1);
@@ -220,42 +226,43 @@ public class SsaGraphBuilder
     /// <param name="ioffset"></param>
     /// <param name="aliases"></param>
     /// <returns></returns>
-    private StorageAlias FindNextFragment(ulong ioffset, List<StorageAlias> aliases)
+    private StorageAlias FindNextFragment(int ioffset, List<StorageAlias> aliases)
     {
-        Storage? stgBest = null;
+        BitRange rangeBest = default;
         Node? nodeBest = null;
         for (int i = 0; i < aliases.Count; ++i)
         {
             var a = aliases[i];
-            if (a.Storage.BitAddress < ioffset)
+            if (a.Range.Lsb < ioffset)
                 continue;
-            if (a.Storage.BitAddress + a.Storage.BitSize >= ioffset)
-                continue;
-            if (stgBest is null || a.Storage.BitAddress < stgBest.BitAddress)
+            if (nodeBest is null || a.Range.Lsb < rangeBest.Lsb)
             {
-                stgBest = a.Storage;
+                rangeBest = a.Range;
                 nodeBest = a.Node;
                 continue;
             }
-            if (a.Storage.BitAddress == stgBest.BitAddress)
+            if (a.Range.Lsb == rangeBest.Lsb)
             {
-                if (a.Storage.BitSize < stgBest.BitSize)
+                if (a.Range.Extent < rangeBest.Extent)
                 {
-                    stgBest = a.Storage;
+                    rangeBest = a.Range;
                     nodeBest = a.Node;
                 }
             }
         }
-        return new(stgBest!, nodeBest!);
+        return new(rangeBest, nodeBest!);
     }
 
-    private Storage MakeSubstorage(Storage stg, ulong ioffset, ulong v)
+    private Storage MakeSubstorage(Storage stg, int ioffset, int v)
     {
         throw new NotImplementedException();
     }
 
-    private Storage MakeSlice(Storage stg, ulong ioffset, ulong v)
+    private StorageAlias MakeSlice(Storage stg,BitRange rangeSub, Node n)
     {
+        var range = stg.GetBitRange().Intersect(rangeSub);
+        if (rangeSub == range)
+            return new(range, n);
         throw new NotImplementedException();
     }
 
@@ -267,16 +274,18 @@ public class SsaGraphBuilder
     private static bool FindExactFragment(Storage stg, List<StorageAlias> aliases, out Node local)
     {
         bool foundFragment = false;
+        var range = stg.GetBitRange();
         for (int i = aliases.Count - 1; i >= 0; --i)
         {
             var alias = aliases[i];
-            if (alias.Storage == stg && !foundFragment)
+            if (range == alias.Range &&
+                !foundFragment)
             {
                 // Exact match.
                 local = alias.Node;
                 return true;
             }
-            if (alias.Storage.OverlapsWith(stg))
+            if (range.Overlaps(alias.Range))
             {
                 foundFragment = true;
             }
@@ -304,14 +313,14 @@ public class SsaGraphBuilder
         public Dictionary<Storage, PhiNode> IncompletePhis { get; internal set; }
     }
 
-    private readonly struct StorageAlias(Storage storage, Node node)
+    private readonly struct StorageAlias(BitRange range, Node node)
     {
-        public Storage Storage { get; } = storage;
+        public BitRange Range { get; } = range;
         public Node Node { get; } = node;
 
-        public void Deconstruct(out Storage storage, out Node node)
+        public void Deconstruct(out BitRange range, out Node node)
         {
-            storage = this.Storage;
+            range = this.Range;
             node = this.Node;
         }
     }

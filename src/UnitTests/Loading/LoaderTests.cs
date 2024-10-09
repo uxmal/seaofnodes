@@ -34,8 +34,8 @@ namespace SeaOfNodes.UnitTests.Loading
                 caller!,
                 Address.Ptr32(0x1000));
             client(m);
-            var loader = new SeaOfNodes.Loading.Loader();
-            var node = loader.Load(m.ToProcedure());
+            var loader = new SeaOfNodes.Loading.Loader(m.ToProcedure());
+            var node = loader.Load();
             var sActual = NodePrinter.PrettyPrint(node, 99);
             if (sExpected != sActual)
             {
@@ -270,7 +270,6 @@ namespace SeaOfNodes.UnitTests.Loading
         }
 
         [Test]
-        [Ignore("Refactor SSA graph builder first")]
         public void Ldr_Slice()
         {
             var sExpected =
