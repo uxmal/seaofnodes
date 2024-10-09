@@ -18,7 +18,8 @@ namespace SeaOfNodes.Loading
         private Dictionary<Block, BlockState> states;
         private Dictionary<Block, BlockNode> blockNodes;
         private HashSet<Block> sealedBlocks;
-        private Block? blockCur;
+        private Block blockCur;
+        private CFNode? ctrlNode;   // The controlling control flow node.
         private HashSet<Storage> definedStorages;
         private HashSet<Storage> usedStorages;
         private BlockGraph cfg;
@@ -31,6 +32,7 @@ namespace SeaOfNodes.Loading
             this.definedStorages = [];
             this.usedStorages = [];
             this.sealedBlocks = [];
+            this.blockCur = default!;
             this.cfg = default!;
         }
 
@@ -48,13 +50,14 @@ namespace SeaOfNodes.Loading
                 if (!visited.Add(block))
                     continue;
                 this.blockCur = block;
+                this.ctrlNode = blockNodes[block];
                 states.Add(block, new BlockState());
                 ProcessBlock(block);
                 foreach (var succ in procedure.ControlGraph.Successors(block))
                 {
-                    if (blockCur is not null)
+                    if (ctrlNode is not null)
                     {
-                        AddEdge(blockNodes[blockCur], blockNodes[succ]);
+                        AddEdge(ctrlNode, blockNodes[succ]);
                     }
                     wl.Add(succ);
                 }
@@ -70,6 +73,22 @@ namespace SeaOfNodes.Loading
             use.AddInput(def);
         }
 
+        private void AddEdges(Node def, IEnumerable<Node> uses)
+        {
+            foreach (var use in uses)
+            {
+                AddEdge(def, use);
+            }
+        }
+
+        private void AddEdges(IEnumerable<Node> defs, Node use)
+        {
+            foreach (var def in defs)
+            {
+                AddEdge(def, use);
+            }
+        }
+
         private void CreateBlockNodes(BlockGraph cfg)
         {
             foreach (var b in cfg.Blocks)
@@ -77,16 +96,6 @@ namespace SeaOfNodes.Loading
                 blockNodes.Add(b, factory.Block(b));
             }
         }
-
-        /*
-        private void ProcessBlockEdge(Block pred, Block succ)
-        {
-            var nPred = blockNodes[pred];
-            var nSucc = blockNodes[succ];
-
-            nSucc.AddInput(nPred);
-            nPred.AddUse(nSucc);
-        }*/
 
         private void ProcessBlock(Block block)
         {
@@ -126,7 +135,7 @@ namespace SeaOfNodes.Loading
 
         public Node VisitAssignment(Assignment ass)
         {
-            Debug.Assert(blockCur is not null);
+            Debug.Assert(ctrlNode is not null);
             var srcNode = ass.Src.Accept(this);
             WriteStorage(ass.Dst, blockCur, srcNode);
             return srcNode;
@@ -142,20 +151,27 @@ namespace SeaOfNodes.Loading
 
         public Node VisitBranch(Branch branch)
         {
-            Debug.Assert(blockCur is not null);
-            var bn = blockNodes[blockCur];
+            Debug.Assert(ctrlNode is not null);
             var predicate = branch.Condition.Accept(this);
-            var branchNode = factory.Branch(bn, predicate);
+            var branchNode = factory.Branch(ctrlNode, predicate);
             var falseProj = factory.Project(branchNode, 0);
             var trueProj = factory.Project(branchNode, 1);
             AddEdge(falseProj, blockNodes[blockCur.Succ[0]]);
             AddEdge(trueProj, blockNodes[blockCur.Succ[1]]);
+            ctrlNode = null;
             return branchNode;
         }
 
         public Node VisitCallInstruction(CallInstruction ci)
         {
-            throw new NotImplementedException();
+            Debug.Assert(ctrlNode is not null);
+            var fn = ci.Callee.Accept(this);
+            var uses = ci.Uses.Select(u => factory.Use(u.Storage, ctrlNode, u.Expression.Accept(this))).ToArray();
+            var call = factory.Call(ctrlNode, fn);
+            AddEdges(uses, call);
+            var defs = ci.Definitions.Select(d => WriteStorage(d.Storage, blockCur, factory.Def(call, d.Storage))).ToArray();
+            ctrlNode = call;
+            return call;
         }
 
         public Node VisitCast(Cast cast)
@@ -211,7 +227,6 @@ namespace SeaOfNodes.Loading
 
         public Node VisitIdentifier(Identifier id)
         {
-            Debug.Assert(blockCur is not null);
             var node = ReadStorage(id.Storage, blockCur);
             return node;
         }
@@ -253,16 +268,15 @@ namespace SeaOfNodes.Loading
 
         public Node VisitProcedureConstant(ProcedureConstant pc)
         {
-            throw new NotImplementedException();
+            return factory.ProcedureConstant(pc);
         }
 
         public Node VisitReturnInstruction(ReturnInstruction ret)
         {
-            Debug.Assert(blockCur is not null);
+            Debug.Assert(ctrlNode is not null);
             var retVal = ret.Expression?.Accept(this);
-            var bn = blockNodes[blockCur];
-            var retNode = factory.Return(bn, retVal);
-            AddEdge(bn, retNode);
+            var retNode = factory.Return(ctrlNode, retVal);
+            AddEdge(ctrlNode, retNode);
             return retNode;
         }
 
@@ -318,15 +332,16 @@ namespace SeaOfNodes.Loading
             throw new NotImplementedException();
         }
 
-        private void WriteStorage(Identifier dst, Block block, Node node)
+        private Node WriteStorage(Identifier dst, Block block, Node node)
         {
-            WriteStorage(dst.Storage, block, node);
+            return WriteStorage(dst.Storage, block, node);
         }
 
-        private void WriteStorage(Storage stg, Block block, Node node)
+        private Node WriteStorage(Storage stg, Block block, Node node)
         {
             this.definedStorages.Add(stg);
             states[block].Definitions[stg] = node;
+            return node;
         }
 
         private Node ReadStorage(Storage stg, Block block)

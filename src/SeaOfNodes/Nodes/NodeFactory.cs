@@ -30,9 +30,14 @@ namespace SeaOfNodes.Nodes
             return new BlockNode(++nextNodeId, block);
         }
 
-        public BranchNode Branch(BlockNode ctrlNode, Node predicate)
+        public BranchNode Branch(CFNode ctrlNode, Node predicate)
         {
             return new BranchNode(++nextNodeId,  ctrlNode, predicate);
+        }
+
+        public CallNode Call(CFNode bn, Node fn)
+        {
+            return new CallNode(++nextNodeId, bn, fn);
         }
 
         public ConstantNode Constant(Constant value)
@@ -45,10 +50,20 @@ namespace SeaOfNodes.Nodes
             return new DefNode(++nextNodeId, StartNode, stg);
         }
 
+        public DefNode Def(CFNode node, Storage stg)
+        {
+            return new DefNode(++nextNodeId, node, stg);
+        }
+
 
         public PhiNode Phi(Block block, params Node[] nodes)
         {
             return new PhiNode(++nextNodeId, block, nodes);
+        }
+
+        public ProcedureConstantNode ProcedureConstant(ProcedureConstant pc)
+        {
+            return new ProcedureConstantNode(++nextNodeId, StartNode, pc);
         }
 
         public Node Project(IMultiNode node, int index)
@@ -56,14 +71,14 @@ namespace SeaOfNodes.Nodes
             return new ProjectionNode(++nextNodeId, node, index);
         }
 
-        public ReturnNode Return(BlockNode blockNode)
+        public ReturnNode Return(CFNode ctrlNode)
         {
-            return new ReturnNode(++nextNodeId, blockNode);
+            return new ReturnNode(++nextNodeId, ctrlNode);
         }
 
-        public ReturnNode Return(BlockNode blockNode, Node? retVal)
+        public ReturnNode Return(CFNode ctrlNode, Node? retVal)
         {
-            return new ReturnNode(++nextNodeId, blockNode, retVal);
+            return new ReturnNode(++nextNodeId, ctrlNode, retVal);
         }
 
         public UnaryNode Unary(DataType dataType, UnaryOperator @operator, Node expNode)
@@ -71,9 +86,10 @@ namespace SeaOfNodes.Nodes
             return new UnaryNode(++nextNodeId, dataType, @operator, null, expNode);
         }
 
-        public UseNode Use(Storage storage, BlockNode blockNode, Node node)
+        public UseNode Use(Storage storage, CFNode ctrlNode, Node node)
         {
-            return new UseNode(++nextNodeId, storage, blockNode, node);
+            return new UseNode(++nextNodeId, storage, ctrlNode, node);
         }
+
     }
 }

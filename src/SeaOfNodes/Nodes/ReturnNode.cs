@@ -3,13 +3,11 @@ namespace SeaOfNodes.Nodes
 {
     public class ReturnNode : CFNode
     {
-        private BlockNode blockNode;
         private Node? retVal;
 
-        public ReturnNode(int nodeId, BlockNode blockNode, Node? retVal = null)
+        public ReturnNode(int nodeId, CFNode blockNode, Node? retVal = null)
             : base(nodeId)
         {
-            this.blockNode = blockNode;
             this.retVal = retVal;
             AddInput(blockNode);
             if (retVal is not null)

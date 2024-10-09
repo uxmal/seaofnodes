@@ -162,9 +162,21 @@ public class ProcedureBuilder : ExpressionEmitter
             return this;
         }
 
+        public CallBuilder Def(Identifier id)
+        {
+            call.Definitions.Add(new CallBinding(id.Storage, id));
+            return this;
+        }
+
         public CallBuilder Use(Storage stg, Expression e)
         {
             call.Uses.Add(new CallBinding(stg, e));
+            return this;
+        }
+
+        public CallBuilder Use(Identifier id)
+        {
+            call.Uses.Add(new CallBinding(id.Storage, id));
             return this;
         }
     }

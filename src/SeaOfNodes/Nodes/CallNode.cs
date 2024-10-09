@@ -1,18 +1,15 @@
-﻿
+﻿using System.Runtime.Intrinsics.X86;
+
 namespace SeaOfNodes.Nodes
 {
-    public class BranchNode : CFNode, IMultiNode
+    public class CallNode : CFNode
     {
-        public BranchNode(int nodeId, CFNode ctrlNode, Node predicate) :
-            base(nodeId, ctrlNode, predicate)
+        public CallNode(int nodeId, CFNode bn, Node fn)
+            : base(nodeId, bn, fn)
         {
         }
 
-        protected override string Name => "branch";
-
-        public CFNode CtrlNode => (BlockNode) InNodes[0]!;
-
-        public Node Predicate => InNodes[1]!;
+        protected override string Name => "call";
 
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {

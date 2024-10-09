@@ -35,7 +35,7 @@ namespace SeaOfNodes.UnitTests.Loading
 
         public string Name => throw new NotImplementedException();
 
-        public PrimitiveType PointerType => throw new NotImplementedException();
+        public PrimitiveType PointerType => PrimitiveType.Ptr32;
 
         public MaskedPattern[] ProcedurePrologs => throw new NotImplementedException();
 

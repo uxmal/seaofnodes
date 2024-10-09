@@ -8,7 +8,7 @@ namespace SeaOfNodes.Nodes;
 /// </summary>
 public class UseNode : Node
 {
-    public UseNode(int nodeId, Storage stg, BlockNode blockNode, Node node)
+    public UseNode(int nodeId, Storage stg, CFNode blockNode, Node node)
         : base(nodeId, blockNode, node)
     {
         this.Storage = stg;
