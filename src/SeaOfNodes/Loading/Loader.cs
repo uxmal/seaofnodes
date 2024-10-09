@@ -215,7 +215,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
 
     public Node VisitIdentifier(Identifier id)
     {
-        var node = sgb.ReadStorage(id.Storage, blockCur);
+        var node = sgb.ReadStorage(id, blockCur);
         return node;
     }
 

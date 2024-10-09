@@ -15,6 +15,17 @@ namespace SeaOfNodes.UnitTests.Loading
 {
     public class FakeArchitecture : IProcessorArchitecture
     {
+        private readonly RegisterStorage[] gpRegs;
+        private readonly RegisterStorage[] lowRegs;
+        private readonly RegisterStorage[] hiRegs;
+
+        public FakeArchitecture() {
+            var factory = new StorageFactory();
+            gpRegs = factory.RangeOfReg32(32, "r{0}");
+            lowRegs = gpRegs.Select(r => new RegisterStorage("r{0}l", r.Number, 0, PrimitiveType.Word16)).ToArray();
+            hiRegs = gpRegs.Select(r => new RegisterStorage("r{0}h", r.Number, 16, PrimitiveType.Word16)).ToArray();
+        }
+
         public FlagGroupStorage? CarryFlag => throw new NotImplementedException();
 
         public int DefaultBase => throw new NotImplementedException();
@@ -179,7 +190,22 @@ namespace SeaOfNodes.UnitTests.Loading
 
         public RegisterStorage? GetRegister(StorageDomain domain, BitRange range)
         {
-            throw new NotImplementedException();
+            uint i = (uint)domain;
+            if (i < gpRegs.Length)
+            {
+                if (0 <= range.Lsb && range.Lsb < 16)
+                {
+                    if (range.Msb <= 16)
+                        return lowRegs[i];
+                    else
+                        return gpRegs[i];
+                }
+                else
+                {
+                    return hiRegs[i];
+                }
+            }
+            return null;
         }
 
         public RegisterStorage[] GetRegisters()

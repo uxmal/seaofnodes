@@ -85,6 +85,11 @@ namespace SeaOfNodes.Nodes
             return new ReturnNode(++nextNodeId, ctrlNode, retVal);
         }
 
+        public Node Seq(params Node[] nodes)
+        {
+            return new SequenceNode(++nextNodeId, nodes);
+        }
+
         public Node Slice(Node node, DataType dataType, ulong bitOffset)
         {
             return new SliceNode(++nextNodeId, node, dataType, (int)bitOffset);

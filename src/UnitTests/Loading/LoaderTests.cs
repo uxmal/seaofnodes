@@ -1,6 +1,5 @@
 ﻿using Reko.Core;
 using Reko.Core.Expressions;
-using Reko.Core.Hll.Pascal;
 using Reko.Core.Types;
 using SeaOfNodes.Nodes;
 using System.Runtime.CompilerServices;
@@ -10,17 +9,22 @@ namespace SeaOfNodes.UnitTests.Loading
     [TestFixture]
     internal class LoaderTests
     {
-        private static readonly RegisterStorage r0 = RegisterStorage.Reg32("r0", 0);
-        private static readonly RegisterStorage r1 = RegisterStorage.Reg32("r1", 1);
-        private static readonly RegisterStorage r2 = RegisterStorage.Reg32("r2", 2);
+        private readonly RegisterStorage r0 ;
+        private readonly RegisterStorage r1 ;
+        private readonly RegisterStorage r2 ;
 
-        private static readonly RegisterStorage r0l = RegisterStorage.Reg16("r0l", 0);
+        private readonly RegisterStorage r0l;
 
         private readonly FakeArchitecture arch;
 
         public LoaderTests()
         {
             this.arch = new FakeArchitecture();
+            r0 = arch.GetRegister((StorageDomain)0, new(0, 32))!;
+            r1 = arch.GetRegister((StorageDomain)1, new(0, 32))!;
+            r2 = arch.GetRegister((StorageDomain)2, new(0, 32))!;
+
+            r0l = arch.GetRegister(0, new(0, 16))!;
         }
 
 
@@ -76,7 +80,7 @@ namespace SeaOfNodes.UnitTests.Loading
 
             RunTest(sExp, m =>
             {
-                var r1 = m.Reg(LoaderTests.r1);
+                var r1 = m.Reg(this.r1);
                 m.Assign(r1, 42);
                 m.Return();
             });
@@ -110,8 +114,8 @@ namespace SeaOfNodes.UnitTests.Loading
 
             RunTest(sExp, m =>
             {
-                var r0 = m.Reg(LoaderTests.r0);
-                var r1 = m.Reg(LoaderTests.r1);
+                var r0 = m.Reg(this.r0);
+                var r1 = m.Reg(this.r1);
                 m.Assign(r0, m.IAdd(r0, r1));
                 m.Return();
             });
@@ -156,8 +160,8 @@ namespace SeaOfNodes.UnitTests.Loading
 
             RunTest(sExp, m =>
             {
-                var r0 = m.Reg(LoaderTests.r0);
-                var r1 = m.Reg(LoaderTests.r1);
+                var r0 = m.Reg(this.r0);
+                var r1 = m.Reg(this.r1);
                 m.Branch(m.Ge0(r0), "done");
                 m.Assign(r0, m.Neg(r0));
                 m.Label("done");
@@ -200,8 +204,8 @@ namespace SeaOfNodes.UnitTests.Loading
 
             RunTest(sExpected, m =>
             {
-                var r0 = m.Reg(LoaderTests.r0);
-                var r1 = m.Reg(LoaderTests.r1);
+                var r0 = m.Reg(this.r0);
+                var r1 = m.Reg(this.r1);
 
                 m.Call(External("add"))
                     .Use(r0).Use(r1)
@@ -254,9 +258,9 @@ namespace SeaOfNodes.UnitTests.Loading
 
             RunTest(sExpected, m =>
             {
-                var r0 = m.Reg(LoaderTests.r0);
-                var r1 = m.Reg(LoaderTests.r1);
-                var r2 = m.Reg(LoaderTests.r2);
+                var r0 = m.Reg(this.r0);
+                var r1 = m.Reg(this.r1);
+                var r2 = m.Reg(this.r2);
                 m.Call(External("mul"))
                     .Use(r0).Use(r1)
                     .Def(r0);
@@ -274,32 +278,32 @@ namespace SeaOfNodes.UnitTests.Loading
         {
             var sExpected =
             #region Expected
-                @"
+@"
 { id:1, lbl:Start, in:[], out:[2,3,6,7] }
 
-{ id:7, lbl:def_Mem, in:[1], out:[8,11] }
+{ id:7, lbl:def_Mem, in:[1], out:[8,12] }
 { id:6, lbl:def_r0, in:[1], out:[8,10] }
-{ id:8, lbl:Mem, in:[7,6], out:[12] }
+{ id:8, lbl:Mem, in:[7,6], out:[10] }
+{ id:10, lbl:SEQ, in:[_,6,8], out:[11] }
 
 { id:3, lbl:<Entry>, in:[1], out:[5] }
 
 { id:5, lbl:l00001000, in:[3], out:[9,4] }
 
-{ id:4, lbl:<Exit>, in:[5], out:[2,10,11,12] }
+{ id:4, lbl:<Exit>, in:[5], out:[2,11,12] }
 
-{ id:12, lbl:use_r0l, in:[4,8], out:[2] }
-{ id:11, lbl:use_Mem, in:[4,7], out:[2] }
-{ id:10, lbl:use_r0, in:[4,6], out:[2] }
+{ id:12, lbl:use_Mem, in:[4,7], out:[2] }
+{ id:11, lbl:use_r0, in:[4,10], out:[2] }
 
-{ id:2, lbl:Stop, in:[1,4,10,11,12], out:[] }
+{ id:2, lbl:Stop, in:[1,4,11,12], out:[] }
 
 ";
             #endregion
 
             RunTest(sExpected, m =>
             {
-                var r0 = m.Reg(LoaderTests.r0);
-                var r0l = m.Reg(LoaderTests.r0l);
+                var r0 = m.Reg(this.r0);
+                var r0l = m.Reg(this.r0l);
 
                 m.Assign(r0l, m.Mem16(r0));
                 m.Return();
