@@ -14,6 +14,15 @@ namespace SeaOfNodes.Nodes
 
         protected override string Name => "Stop";
 
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitStopNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitStopNode(this, ctx);
+        }
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {
             writer.Write("Stop[ ");

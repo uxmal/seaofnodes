@@ -19,6 +19,16 @@ namespace SeaOfNodes.Nodes
 
         protected override string Name => $"def_{Storage}";
 
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitDefNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitDefNode(this, ctx);
+        }
+
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {
             throw new NotImplementedException();

@@ -18,6 +18,17 @@ public class UseNode : Node
 
     protected override string Name => $"use_{Storage}";
 
+    public override T Accept<T>(INodeVisitor<T> visitor)
+    {
+        return visitor.VisitUseNode(this);
+    }
+
+    public override T Accept<T,C>(INodeVisitor<T,C> visitor, C ctx)
+    {
+        return visitor.VisitUseNode(this, ctx);
+    }
+
+
     protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
     {
         writer.Write(Name);

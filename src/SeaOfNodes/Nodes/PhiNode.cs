@@ -24,6 +24,16 @@ namespace SeaOfNodes.Nodes
 
         protected override string Name => $"phi_{NodeId}";
 
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitPhiNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitPhiNode(this, ctx);
+        }
+
         protected override Node? Simplify()
         {
             throw new NotImplementedException();

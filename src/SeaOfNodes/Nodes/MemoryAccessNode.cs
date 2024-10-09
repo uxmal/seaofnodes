@@ -26,6 +26,16 @@ namespace SeaOfNodes.Nodes
 
         protected override string Name => "Mem";
 
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitMemoryAccessNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitMemoryAccessNode(this, ctx);
+        }
+
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {
             throw new NotImplementedException();

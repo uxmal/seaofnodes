@@ -9,9 +9,9 @@ namespace SeaOfNodes.UnitTests.Loading
     [TestFixture]
     internal class LoaderTests
     {
-        private readonly RegisterStorage r0 ;
-        private readonly RegisterStorage r1 ;
-        private readonly RegisterStorage r2 ;
+        private readonly RegisterStorage r0;
+        private readonly RegisterStorage r1;
+        private readonly RegisterStorage r2;
 
         private readonly RegisterStorage r0l;
 

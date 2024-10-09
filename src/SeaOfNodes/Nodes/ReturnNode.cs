@@ -16,6 +16,16 @@ public class ReturnNode : CFNode
 
     protected override string Name => "return";
 
+    public override T Accept<T>(INodeVisitor<T> visitor)
+    {
+        return visitor.VisitReturnNode(this);
+    }
+
+    public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+    {
+        return visitor.VisitReturnNode(this, ctx);
+    }
+
     protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
     {
         writer.Write("return");

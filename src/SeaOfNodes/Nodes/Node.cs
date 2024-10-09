@@ -58,6 +58,9 @@ namespace SeaOfNodes.Nodes
 
         public string label() => this.Name;
 
+        public abstract T Accept<T>(INodeVisitor<T> visitor);
+        public abstract T Accept<T, C>(INodeVisitor<T, C> visitor, C context);
+
         public void AddInput(Node? use)
         {
             this.inNodes.Add(use);

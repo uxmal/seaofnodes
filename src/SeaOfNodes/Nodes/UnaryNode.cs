@@ -18,6 +18,16 @@ namespace SeaOfNodes.Nodes
         
         public UnaryOperator Operator { get; }
 
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitUnaryNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitUnaryNode(this, ctx);
+        }
+
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {
             throw new NotImplementedException();

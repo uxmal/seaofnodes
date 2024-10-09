@@ -22,6 +22,17 @@ namespace SeaOfNodes.Nodes
         public Node Left { get; }
         public Node Right { get; }
 
+
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitBinaryNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitBinaryNode(this, ctx);
+        }
+
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {
             writer.Write('(');

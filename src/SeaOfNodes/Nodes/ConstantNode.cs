@@ -1,5 +1,4 @@
 ﻿using Reko.Core.Expressions;
-using System.Timers;
 
 namespace SeaOfNodes.Nodes
 {
@@ -21,6 +20,15 @@ namespace SeaOfNodes.Nodes
 
         public Constant Value { get; }
 
+        public override T Accept<T>(INodeVisitor<T> visitor)
+        {
+            return visitor.VisitConstantNode(this);
+        }
+
+        public override T Accept<T, C>(INodeVisitor<T, C> visitor, C ctx)
+        {
+            return visitor.VisitConstantNode(this, ctx);
+        }
         protected override Node? Simplify()
         {
             return null;
