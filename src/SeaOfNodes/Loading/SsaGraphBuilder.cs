@@ -15,6 +15,7 @@ public class SsaGraphBuilder
     private readonly Dictionary<Block, BlockState> states;
     private readonly HashSet<Block> sealedBlocks;
     private readonly Dictionary<StorageDomain, BitRange> definedStorages;
+    private readonly Dictionary<(Block, StorageDomain, BitRange), PhiNode> incompletePhis;
 
     public SsaGraphBuilder(
         IProcessorArchitecture arch,
@@ -27,6 +28,7 @@ public class SsaGraphBuilder
         this.states = [];
         this.sealedBlocks = [];
         this.definedStorages = [];
+        this.incompletePhis = [];
     }
 
     public void EnterBlock(Block block)
@@ -128,7 +130,7 @@ public class SsaGraphBuilder
             // Incomplete CFG
             var phi = factory.Phi(block);
             AddEdge(blockNodes[block], phi);
-            states[block].IncompletePhis[(domain, range)] = phi;
+            this.incompletePhis[(block, domain, range)] = phi;
             WriteStorage(domain, range, block, phi);
             return phi;
         }
@@ -337,6 +339,18 @@ public class SsaGraphBuilder
         use.AddInput(def);
     }
 
+    public void ProcessIncompletePhis()
+    {
+        while (incompletePhis.Count > 0)
+        {
+            var work = incompletePhis.ToArray();
+            incompletePhis.Clear();
+            foreach (var ((_, dom, z), phi) in work)
+            {
+                AddPhiOperands(dom, z, phi);
+            }
+        }
+    }
 
 
     private class BlockState
@@ -344,10 +358,8 @@ public class SsaGraphBuilder
         public BlockState()
         {
             this.Definitions = [];
-            this.IncompletePhis = [];
         }
         public Dictionary<StorageDomain, List<StorageAlias>> Definitions { get; }
-        public Dictionary<(StorageDomain, BitRange), PhiNode> IncompletePhis { get; internal set; }
     }
 
     [DebuggerDisplay("{Range} ({Node.Name})")]

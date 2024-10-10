@@ -49,7 +49,11 @@ public class ProcedureBuilder : ExpressionEmitter
                 stm.Instruction = new Branch(branch.Condition, target);
                 proc.ControlGraph.AddEdge(block, target);
                 break;
-            default: throw new NotImplementedException(stm.Instruction.GetType().Name);
+            default:
+                // Must have been a goto.
+                target = this.labeledBlocks[label];
+                proc.ControlGraph.AddEdge(block, target);
+                break;
             }
         }
     }
@@ -125,6 +129,12 @@ public class ProcedureBuilder : ExpressionEmitter
         return new CallBuilder(call);
     }
 
+    public void Goto(string label)
+    {
+        var block = EnsureBlock(null);
+        fixups.Add((block, label));
+        blockCur = null;
+    }
     public void Return()
     {
         Emit(new ReturnInstruction());

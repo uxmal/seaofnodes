@@ -59,6 +59,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
             sgb.SealBlock(block);
         }
         ProcessExitBlock(proc.ExitBlock);
+        sgb.ProcessIncompletePhis();
         return factory.StopNode;
     }
 
@@ -88,7 +89,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
     {
         foreach (var b in cfg.Blocks)
         {
-            blockNodes.Add(b, (BlockNode) factory.Block(b));
+            blockNodes.Add(b, factory.Block(b));
         }
     }
 
@@ -105,6 +106,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
         AddEdge(blockNodes[exitBlock], factory.StopNode);
         sgb.UseDefinedStorages(exitBlock);
     }
+
 
     public Node VisitAddress(Address addr)
     {

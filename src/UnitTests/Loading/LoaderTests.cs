@@ -323,5 +323,71 @@ namespace SeaOfNodes.UnitTests.Loading
                 m.Return();
             });
         }
+
+        [Test]
+        public void Ldr_Loop()
+        {
+            var sExpected =
+            #region Expected
+@"
+{ id:1, lbl:Start, in:[], out:[2,3,9,10,12,20] }
+
+{ id:20, lbl:#1<32>, in:[1], out:[21] }
+{ id:12, lbl:#0xA<32>, in:[1], out:[13] }
+{ id:10, lbl:#0<32>, in:[1], out:[18] }
+{ id:9, lbl:#0<32>, in:[1], out:[11] }
+
+{ id:3, lbl:<Entry>, in:[1], out:[5] }
+
+{ id:5, lbl:l00001000, in:[3], out:[7] }
+
+{ id:7, lbl:head, in:[5,6], out:[11,14,18] }
+
+{ id:11, lbl:phi_11, in:[7,21,9], out:[13,19,21,22] }
+{ id:21, lbl: + , in:[_,11,20], out:[11] }
+{ id:19, lbl: + , in:[_,18,11], out:[18] }
+{ id:18, lbl:phi_18, in:[7,19,10], out:[19,23] }
+{ id:13, lbl: <= , in:[_,11,12], out:[14] }
+
+{ id:14, lbl:branch, in:[7,13], out:[15,16] }
+
+{ id:16, lbl:Proj, in:[14], out:[6] }
+
+{ id:6, lbl:body, in:[16], out:[7] }
+
+{ id:15, lbl:Proj, in:[14], out:[8] }
+
+{ id:8, lbl:l00001014, in:[15], out:[17] }
+
+{ id:17, lbl:return, in:[8], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[17], out:[2,22,23] }
+
+{ id:23, lbl:use_r0, in:[4,18], out:[2] }
+{ id:22, lbl:use_r1, in:[4,11], out:[2] }
+
+{ id:2, lbl:Stop, in:[1,4,22,23], out:[] }
+
+";
+            #endregion
+
+            RunTest(sExpected, m =>
+            {
+                var r0 = m.Reg(this.r0);
+                var r1 = m.Reg(this.r1);
+
+                m.Assign(r1, 0);
+                m.Assign(r0, 0);
+                m.Goto("head");
+
+                m.Label("body");
+                m.Assign(r0, m.IAdd(r0, r1));
+                m.Assign(r1, m.IAdd(r1, 1));
+
+                m.Label("head");
+                m.Branch(m.Le(r1, 10), "body");
+                m.Return();
+            });
+        }
     }
 }
