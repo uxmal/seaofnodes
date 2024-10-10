@@ -1,6 +1,7 @@
 ﻿using SeaOfNodes.Types;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -107,23 +108,6 @@ namespace SeaOfNodes.Nodes
 
         #region Peephole infrastructure
 
-        public Node Peephole()
-        {
-            var nodeNew = DoPeephole();
-            if (nodeNew is null)
-                return this;
-            return EliminateDeadCode(nodeNew);
-        }
-
-        public Node? DoPeephole()
-        {
-            var newNode = Simplify();
-            if (newNode is not null)
-                return newNode;
-            //$TODO: Count idle?
-            return null;
-        }
-
         protected abstract Node? Simplify();
 
         private Node EliminateDeadCode(Node nodeNew)
@@ -153,5 +137,56 @@ namespace SeaOfNodes.Nodes
 
         public virtual bool IsMultiHead() { return false; }
         public virtual bool IsMultiTail() { return false; }
+
+        public void ReplaceInput(Node oldNode, Node newNode)
+        {
+            for (int i = 0; i < inNodes.Count; ++i)
+            {
+                if (inNodes[i] == oldNode)
+                    inNodes[i] = newNode;
+            }
+        }
+
+        public void ClearUses()
+        {
+            this.outNodes.Clear();
+        }
+
+
+        public override string ToString()
+        {
+            return $"{this.label()}:{NodeId}";
+        }
+
+        public void Pin()
+        {
+            this.outNodes.Add(null!);
+        }
+
+        public void Unpin()
+        {
+            Debug.Assert(outNodes[^1] is null);
+            this.outNodes.RemoveAt(outNodes.Count - 1);
+        }
+
+        public bool RemoveUse(Node use)
+        {
+            int iLast = outNodes.Count - 1;
+            int i = 0;
+            bool changed = false;
+            for (; ; )
+            {
+                i = outNodes.IndexOf(use, i);
+                if (i < 0)
+                    return changed;
+                changed = true;
+                if (i < iLast)
+                {
+                    outNodes[i] = outNodes[iLast];
+                }
+                outNodes.RemoveAt(iLast);
+                --iLast;
+            }
+        }
     }
 }

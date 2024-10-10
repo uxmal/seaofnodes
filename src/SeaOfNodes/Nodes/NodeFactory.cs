@@ -5,6 +5,10 @@ using Reko.Core.Types;
 
 namespace SeaOfNodes.Nodes
 {
+    /// <summary>
+    /// This class creates <see cref="Node">Nodes</see> with unique 
+    /// node ID's.
+    /// </summary>
     public class NodeFactory
     {
         private int nextNodeId;
@@ -13,8 +17,8 @@ namespace SeaOfNodes.Nodes
         {
             // StartNode always has node ID 1. We avoid 0 to detect
             // uninitialized values.
-            this.StartNode = new StartNode(++nextNodeId);
-            this.StopNode = new StopNode(++nextNodeId, StartNode);
+            this.StartNode = new StartNode(NextId());
+            this.StopNode = new StopNode(NextId(), StartNode);
         }
 
         public StartNode StartNode { get; }
@@ -22,88 +26,92 @@ namespace SeaOfNodes.Nodes
 
         public Node Binary(DataType dataType, BinaryOperator @operator, Node leftNode, Node rightNode)
         {
-            return new BinaryNode(++nextNodeId, dataType, @operator, leftNode, rightNode);
+            return new BinaryNode(NextId(), dataType, @operator, leftNode, rightNode);
         }
 
         public BlockNode Block(Block block)
         {
-            return new BlockNode(++nextNodeId, block);
+            return new BlockNode(NextId(), block);
         }
 
         public BranchNode Branch(CFNode ctrlNode, Node predicate)
         {
-            return new BranchNode(++nextNodeId,  ctrlNode, predicate);
+            return new BranchNode(NextId(),  ctrlNode, predicate);
         }
 
         public CallNode Call(CFNode bn, Node fn)
         {
-            return new CallNode(++nextNodeId, bn, fn);
+            return new CallNode(NextId(), bn, fn);
         }
 
         public ConstantNode Constant(Constant value)
         {
-            return new ConstantNode(++nextNodeId, StartNode, value);
+            return new ConstantNode(NextId(), StartNode, value);
         }
 
         public DefNode Def(Storage stg)
         {
-            return new DefNode(++nextNodeId, StartNode, stg);
+            return new DefNode(NextId(), StartNode, stg);
         }
 
         public DefNode Def(CFNode node, Storage stg)
         {
-            return new DefNode(++nextNodeId, node, stg);
+            return new DefNode(NextId(), node, stg);
         }
 
         public MemoryAccessNode Mem(DataType dataType, Node memId, Node effectiveAddress)
         {
-            return new MemoryAccessNode(++nextNodeId, dataType, memId, effectiveAddress);
+            return new MemoryAccessNode(NextId(), dataType, memId, effectiveAddress);
         }
 
         public PhiNode Phi(Block block, params Node[] nodes)
         {
-            return new PhiNode(++nextNodeId, block, nodes);
+            return new PhiNode(NextId(), block, nodes);
         }
 
         public ProcedureConstantNode ProcedureConstant(ProcedureConstant pc)
         {
-            return new ProcedureConstantNode(++nextNodeId, StartNode, pc);
+            return new ProcedureConstantNode(NextId(), StartNode, pc);
         }
 
         public Node Project(IMultiNode node, int index)
         {
-            return new ProjectionNode(++nextNodeId, node, index);
+            return new ProjectionNode(NextId(), node, index);
         }
 
         public ReturnNode Return(CFNode ctrlNode)
         {
-            return new ReturnNode(++nextNodeId, ctrlNode);
+            return new ReturnNode(NextId(), ctrlNode);
         }
 
         public ReturnNode Return(CFNode ctrlNode, Node? retVal)
         {
-            return new ReturnNode(++nextNodeId, ctrlNode, retVal);
+            return new ReturnNode(NextId(), ctrlNode, retVal);
         }
 
         public Node Seq(params Node[] nodes)
         {
-            return new SequenceNode(++nextNodeId, nodes);
+            return new SequenceNode(NextId(), nodes);
         }
 
         public Node Slice(Node node, DataType dataType, ulong bitOffset)
         {
-            return new SliceNode(++nextNodeId, node, dataType, (int)bitOffset);
+            return new SliceNode(NextId(), node, dataType, (int)bitOffset);
         }
 
         public UnaryNode Unary(DataType dataType, UnaryOperator @operator, Node expNode)
         {
-            return new UnaryNode(++nextNodeId, dataType, @operator, null, expNode);
+            return new UnaryNode(NextId(), dataType, @operator, null, expNode);
         }
 
         public UseNode Use(Storage storage, CFNode ctrlNode, Node node)
         {
-            return new UseNode(++nextNodeId, storage, ctrlNode, node);
+            return new UseNode(NextId(), storage, ctrlNode, node);
         }
 
+        private int NextId()
+        {
+            return ++nextNodeId;
+        }
     }
 }
