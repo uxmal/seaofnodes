@@ -18,12 +18,17 @@ namespace SeaOfNodes.UnitTests.Loading
         private readonly RegisterStorage[] gpRegs;
         private readonly RegisterStorage[] lowRegs;
         private readonly RegisterStorage[] hiRegs;
+        private readonly Dictionary<string, RegisterStorage> regs;
 
         public FakeArchitecture() {
             var factory = new StorageFactory();
             gpRegs = factory.RangeOfReg32(32, "r{0}");
-            lowRegs = gpRegs.Select(r => new RegisterStorage("r{0}l", r.Number, 0, PrimitiveType.Word16)).ToArray();
-            hiRegs = gpRegs.Select(r => new RegisterStorage("r{0}h", r.Number, 16, PrimitiveType.Word16)).ToArray();
+            lowRegs = gpRegs.Select(r => new RegisterStorage($"r{r.Number}l", r.Number, 0, PrimitiveType.Word16)).ToArray();
+            hiRegs = gpRegs.Select(r => new RegisterStorage($"r{r.Number}h", r.Number, 16, PrimitiveType.Word16)).ToArray();
+            regs = gpRegs
+                .Concat(lowRegs)
+                .Concat(hiRegs)
+                .ToDictionary(k => k.Name);
         }
 
         public FlagGroupStorage? CarryFlag => throw new NotImplementedException();
@@ -185,7 +190,9 @@ namespace SeaOfNodes.UnitTests.Loading
 
         public RegisterStorage? GetRegister(string name)
         {
-            throw new NotImplementedException();
+            return regs.TryGetValue(name, out var reg)
+                ? reg
+                : null;
         }
 
         public RegisterStorage? GetRegister(StorageDomain domain, BitRange range)

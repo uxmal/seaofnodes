@@ -24,10 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Nodes\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SeaOfNodes\SeaOfNodes.csproj" />
   </ItemGroup>
 

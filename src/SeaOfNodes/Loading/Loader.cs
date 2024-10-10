@@ -21,14 +21,14 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
     private Procedure proc;
     private BlockGraph cfg;
 
-    public Loader(Procedure proc)
+    public Loader(Procedure proc, NodeFactory factory)
     {
-        this.factory = new NodeFactory();
+        this.proc = proc;
+        this.cfg = proc.ControlGraph;
+        this.factory = factory;
         this.blockNodes = [];
         this.sgb = new SsaGraphBuilder(proc.Architecture, blockNodes, factory);
         this.blockCur = default!;
-        this.proc = proc;
-        this.cfg = proc.ControlGraph;
     }
 
     public StopNode Load()
@@ -88,7 +88,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
     {
         foreach (var b in cfg.Blocks)
         {
-            blockNodes.Add(b, factory.Block(b));
+            blockNodes.Add(b, (BlockNode) factory.Block(b));
         }
     }
 
@@ -184,7 +184,7 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
 
     public Node VisitConstant(Constant c)
     {
-        var node = factory.Constant(c).Peephole();
+        var node = factory.Constant(c);
         return node;
     }
 
@@ -267,7 +267,9 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
         Debug.Assert(ctrlNode is not null);
         var retVal = ret.Expression?.Accept(this);
         var retNode = factory.Return(ctrlNode, retVal);
-        AddEdge(ctrlNode, retNode);
+        ctrlNode.AddUse(retNode);
+        AddEdge(retNode, blockNodes[proc.ExitBlock]);
+        ctrlNode = null;
         return retNode;
     }
 

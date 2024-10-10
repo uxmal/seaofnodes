@@ -1,7 +1,9 @@
 ﻿using Reko.Core;
 using Reko.Core.Expressions;
 using Reko.Core.Types;
+using SeaOfNodes.Loading;
 using SeaOfNodes.Nodes;
+using SeaOfNodes.UnitTests.Loading;
 using System.Runtime.CompilerServices;
 
 namespace SeaOfNodes.UnitTests.Loading
@@ -38,7 +40,7 @@ namespace SeaOfNodes.UnitTests.Loading
                 caller!,
                 Address.Ptr32(0x1000));
             client(m);
-            var loader = new SeaOfNodes.Loading.Loader(m.ToProcedure());
+            var loader = new Loader(m.ToProcedure(), new NodeFactory());
             var node = loader.Load();
             var sActual = NodePrinter.PrettyPrint(node, 99);
             if (sExpected != sActual)
@@ -67,9 +69,11 @@ namespace SeaOfNodes.UnitTests.Loading
 
 { id:3, lbl:<Entry>, in:[1], out:[5] }
 
-{ id:5, lbl:l00001000, in:[3], out:[7,4] }
+{ id:5, lbl:l00001000, in:[3], out:[7] }
 
-{ id:4, lbl:<Exit>, in:[5], out:[2,8] }
+{ id:7, lbl:return, in:[5], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[7], out:[2,8] }
 
 { id:8, lbl:use_r1, in:[4,6], out:[2] }
 
@@ -100,9 +104,11 @@ namespace SeaOfNodes.UnitTests.Loading
 
 { id:3, lbl:<Entry>, in:[1], out:[5] }
 
-{ id:5, lbl:l00001000, in:[3], out:[9,4] }
+{ id:5, lbl:l00001000, in:[3], out:[9] }
 
-{ id:4, lbl:<Exit>, in:[5], out:[2,10,11] }
+{ id:9, lbl:return, in:[5], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[9], out:[2,10,11] }
 
 { id:11, lbl:use_r1, in:[4,7], out:[2] }
 { id:10, lbl:use_r0, in:[4,8], out:[2] }
@@ -145,11 +151,13 @@ namespace SeaOfNodes.UnitTests.Loading
 
 { id:6, lbl:l00001004, in:[12], out:[7] }
 
-{ id:7, lbl:done, in:[13,6], out:[15,4,16] }
+{ id:7, lbl:done, in:[13,6], out:[15,16] }
 
 { id:16, lbl:phi_16, in:[7,14,8], out:[17] }
 
-{ id:4, lbl:<Exit>, in:[7], out:[2,17] }
+{ id:15, lbl:return, in:[7], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[15], out:[2,17] }
 
 { id:17, lbl:use_r0, in:[4,16], out:[2] }
 
@@ -188,11 +196,13 @@ namespace SeaOfNodes.UnitTests.Loading
 { id:10, lbl:use_r1, in:[5,9], out:[11] }
 { id:8, lbl:use_r0, in:[5,7], out:[11] }
 
-{ id:11, lbl:call, in:[5,6,8,10], out:[12,13,4] }
+{ id:11, lbl:call, in:[5,6,8,10], out:[12,13] }
 
 { id:12, lbl:def_r0, in:[11], out:[14] }
 
-{ id:4, lbl:<Exit>, in:[11], out:[2,14,15] }
+{ id:13, lbl:return, in:[11], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[13], out:[2,14,15] }
 
 { id:15, lbl:use_r1, in:[4,9], out:[2] }
 { id:14, lbl:use_r0, in:[4,12], out:[2] }
@@ -240,12 +250,14 @@ namespace SeaOfNodes.UnitTests.Loading
 { id:12, lbl:def_r0, in:[11], out:[14,18,22] }
 { id:14, lbl:use_r0, in:[11,12], out:[16] }
 
-{ id:16, lbl:call, in:[11,13,14,15], out:[17,19,4] }
+{ id:16, lbl:call, in:[11,13,14,15], out:[17,19] }
 
 { id:17, lbl:def_r0, in:[16], out:[18] }
 { id:18, lbl: + , in:[_,17,12], out:[20] }
 
-{ id:4, lbl:<Exit>, in:[16], out:[2,20,21,22] }
+{ id:19, lbl:return, in:[16], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[19], out:[2,20,21,22] }
 
 { id:22, lbl:use_r2, in:[4,12], out:[2] }
 { id:21, lbl:use_r1, in:[4,9], out:[2] }
@@ -288,9 +300,11 @@ namespace SeaOfNodes.UnitTests.Loading
 
 { id:3, lbl:<Entry>, in:[1], out:[5] }
 
-{ id:5, lbl:l00001000, in:[3], out:[9,4] }
+{ id:5, lbl:l00001000, in:[3], out:[9] }
 
-{ id:4, lbl:<Exit>, in:[5], out:[2,11,12] }
+{ id:9, lbl:return, in:[5], out:[4] }
+
+{ id:4, lbl:<Exit>, in:[9], out:[2,11,12] }
 
 { id:12, lbl:use_Mem, in:[4,7], out:[2] }
 { id:11, lbl:use_r0, in:[4,10], out:[2] }
