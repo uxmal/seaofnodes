@@ -17,6 +17,7 @@
         TResult VisitSliceNode(SliceNode slice);
         TResult VisitStartNode(StartNode start);
         TResult VisitStopNode(StopNode stop);
+        TResult VisitStoreNode(StoreNode store);
         TResult VisitUnaryNode(UnaryNode unary);
         TResult VisitUseNode(UseNode use);
     }
@@ -38,6 +39,7 @@
         TResult VisitSliceNode(SliceNode slice, TContext ctx);
         TResult VisitStartNode(StartNode start, TContext ctx);
         TResult VisitStopNode(StopNode stop, TContext ctx);
+        TResult VisitStoreNode(StoreNode store, TContext ctx);
         TResult VisitUnaryNode(UnaryNode unary, TContext ctx);
         TResult VisitUseNode(UseNode use, TContext ctx);
     }
