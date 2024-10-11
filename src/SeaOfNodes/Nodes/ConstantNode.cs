@@ -29,9 +29,5 @@ namespace SeaOfNodes.Nodes
         {
             return visitor.VisitConstantNode(this, ctx);
         }
-        protected override Node? Simplify()
-        {
-            return null;
-        }
     }
 }

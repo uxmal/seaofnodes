@@ -24,9 +24,4 @@ public class SequenceNode : Node
     {
         throw new NotImplementedException();
     }
-
-    protected override Node? Simplify()
-    {
-        throw new NotImplementedException();
-    }
 }

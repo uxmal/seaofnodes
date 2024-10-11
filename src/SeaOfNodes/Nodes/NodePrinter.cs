@@ -12,7 +12,7 @@ namespace SeaOfNodes.Nodes
     {
         public static void WriteLine(Node n, StringBuilder sb)
         {
-            sb.AppendFormat("{0} id:{1}, lbl:{2}", "{",  n.NodeId, PrintLabel(n.label()));
+            sb.AppendFormat("{0} id:{1}, lbl:{2}", "{",  n.NodeId, PrintLabel(n.Label()));
             if (n.InNodes is null)
             {
                 sb.AppendLine("DEAD }");
@@ -47,7 +47,7 @@ namespace SeaOfNodes.Nodes
         // 1234 sssss 1234 1234 1234 1234 1234 1234 tttttt
         public static void WriteLineFixedColumns(Node n, StringBuilder sb)
         {
-            sb.AppendFormat("{0,4} {1,-13} ", n.NodeId, PrintLabel(n.label()));
+            sb.AppendFormat("{0,4} {1,-13} ", n.NodeId, PrintLabel(n.Label()));
             if (n.InNodes == null)
             {
                 sb.AppendLine("DEAD");
@@ -98,7 +98,7 @@ namespace SeaOfNodes.Nodes
                 return;
             }
             n.Type?.typeName(sb);
-            sb.Append(" = ").Append(n.label()).Append("(");
+            sb.Append(" = ").Append(n.Label()).Append("(");
             for (int i = 0; i < n.InNodes.Count; i++)
             {
                 Node? def = n.InNodes[i];
@@ -120,13 +120,20 @@ namespace SeaOfNodes.Nodes
 
         public static string PrettyPrint(Node node, int depth)
         {
-            return /*Parser.SCHEDULED
+            var sb = new StringBuilder();
+            sb = /*Parser.SCHEDULED
                 ? PrettyPrintScheduled(node, depth, false)
-                : */PrettyPrint(node, depth, false);
+                : */PrettyPrint(node, depth, false, sb);
+            return sb.ToString();
+        }
+
+        public static StringBuilder PrettyPrint(Node node, int depth, StringBuilder sb)
+        {
+            return PrettyPrint(node, depth, false, sb);
         }
 
         // Another bulk pretty-printer.  Makes more effort at basic-block grouping.
-        public static string PrettyPrint(Node node, int depth, bool llvmFormat)
+        public static StringBuilder PrettyPrint(Node node, int depth, bool llvmFormat, StringBuilder sb)
         {
             // First, a Breadth First Search at a fixed depth.
             BFS bfs = new(node, depth);
@@ -136,7 +143,6 @@ namespace SeaOfNodes.Nodes
             for (int i = bfs._lim; i < bfs._bfs.Count; i++)
                 PostOrder(bfs._bfs[i], rpos, visit, bfs._bs);
             // Reverse the post-order walk
-            StringBuilder sb = new();
             bool gap = false;
             for (int i = rpos.Count - 1; i >= 0; i--)
             {
@@ -161,7 +167,7 @@ namespace SeaOfNodes.Nodes
                     gap = false;
                 }
             }
-            return sb.ToString();
+            return sb;
         }
 
         private static void PostOrder(Node n, List<Node> rpos, BitSet visit, BitSet bfs)

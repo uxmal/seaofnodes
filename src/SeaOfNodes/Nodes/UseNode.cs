@@ -36,9 +36,4 @@ public class UseNode : Node
         writer.Write(Storage.Name);
         return writer;
     }
-
-    protected override Node? Simplify()
-    {
-        throw new NotImplementedException();
-    }
 }

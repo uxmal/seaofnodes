@@ -34,11 +34,6 @@ namespace SeaOfNodes.Nodes
             return visitor.VisitPhiNode(this, ctx);
         }
 
-        protected override Node? Simplify()
-        {
-            throw new NotImplementedException();
-        }
-
         protected override TextWriter DoWrite(TextWriter writer, HashSet<Node> visited)
         {
             writer.Write("Phi(");

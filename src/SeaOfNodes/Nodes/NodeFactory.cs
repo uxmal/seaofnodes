@@ -109,6 +109,11 @@ namespace SeaOfNodes.Nodes
             return new UseNode(NextId(), storage, ctrlNode, node);
         }
 
+        public StoreNode Store(DataType dataType, CFNode memoryId, Node eaNode, Node srcNode)
+        {
+            return new StoreNode(NextId(), dataType, memoryId, eaNode, srcNode);
+        }
+
         private int NextId()
         {
             return ++nextNodeId;

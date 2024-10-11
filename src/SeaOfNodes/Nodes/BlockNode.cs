@@ -49,10 +49,5 @@ namespace SeaOfNodes.Nodes
             writer.Write(Block.Id);
             return writer;
         }
-
-        protected override Node? Simplify()
-        {
-            return null;
-        }
     }
 }

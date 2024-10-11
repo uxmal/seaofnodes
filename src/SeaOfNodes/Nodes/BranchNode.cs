@@ -28,10 +28,5 @@ namespace SeaOfNodes.Nodes
         {
             throw new NotImplementedException();
         }
-
-        protected override Node? Simplify()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

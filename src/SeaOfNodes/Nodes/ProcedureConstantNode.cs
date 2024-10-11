@@ -1,9 +1,9 @@
 ﻿using Reko.Core.Expressions;
 
-namespace SeaOfNodes.Nodes
+namespace SeaOfNodes.Nodes;
+
+public class ProcedureConstantNode : Node
 {
-    public class ProcedureConstantNode : Node
-    {
         public ProcedureConstantNode(int nodeId, StartNode startNode, ProcedureConstant pc)
             : base(nodeId, startNode)
         {
@@ -28,10 +28,5 @@ namespace SeaOfNodes.Nodes
         {
             throw new NotImplementedException();
         }
-
-        protected override Node? Simplify()
-        {
-            throw new NotImplementedException();
         }
-    }
 }

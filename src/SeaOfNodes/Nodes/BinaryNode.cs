@@ -44,10 +44,5 @@ namespace SeaOfNodes.Nodes
             Right.Write(writer, visited).Write(')');
             return writer;
         }
-
-        protected override Node? Simplify()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

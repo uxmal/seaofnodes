@@ -36,9 +36,4 @@ public class ReturnNode : CFNode
         }
         return writer;
     }
-
-    protected override Node? Simplify()
-    {
-        throw new NotImplementedException();
-    }
 }

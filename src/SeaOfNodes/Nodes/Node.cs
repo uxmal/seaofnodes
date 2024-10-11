@@ -1,10 +1,5 @@
 ﻿using SeaOfNodes.Types;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SeaOfNodes.Nodes
 {
@@ -21,7 +16,7 @@ namespace SeaOfNodes.Nodes
         {
             this.NodeId = nodeId;
             this.inNodes = new List<Node?>(inNodes);
-            this.outNodes = new List<Node>();
+            this.outNodes = [];
             AddUseDefEdges(this.inNodes);
         }
 
@@ -33,10 +28,19 @@ namespace SeaOfNodes.Nodes
             AddUseDefEdges(this.inNodes);
         }
 
+        /// <summary>
+        /// The id uniquely identifying this node.
+        /// </summary>
         public int NodeId { get; }
 
+        /// <summary>
+        /// True if this node is has no out nodes.
+        /// </summary>
         public bool IsUnused => outNodes.Count == 0;
 
+        /// <summary>
+        /// A node is dead if it has neither uses nor users.
+        /// </summary>
         public bool IsDead => IsUnused && this.InNodes.Count == 0;
 
 
@@ -57,11 +61,15 @@ namespace SeaOfNodes.Nodes
 
         public NodeType? Type { get; }
 
-        public string label() => this.Name;
+        public string Label() => this.Name;
 
         public abstract T Accept<T>(INodeVisitor<T> visitor);
         public abstract T Accept<T, C>(INodeVisitor<T, C> visitor, C context);
 
+        /// <summary>
+        /// Adds an additional input to this node.
+        /// </summary>
+        /// <param name="use"></param>
         public void AddInput(Node? use)
         {
             this.inNodes.Add(use);
@@ -106,28 +114,6 @@ namespace SeaOfNodes.Nodes
             outNodes.Add(node);
         }
 
-        #region Peephole infrastructure
-
-        protected abstract Node? Simplify();
-
-        private Node EliminateDeadCode(Node nodeNew)
-        {
-            if (nodeNew != this &&
-                this.IsUnused &&
-                !this.IsDead)
-            {
-                this.Kill();
-            }
-            return nodeNew;
-        }
-
-        private void Kill()
-        {
-            throw new NotImplementedException();
-        }
-
-        #endregion
-
         public bool IsCFG() => this is CFNode;
 
         public CFNode Cfg(int index)
@@ -155,7 +141,7 @@ namespace SeaOfNodes.Nodes
 
         public override string ToString()
         {
-            return $"{this.label()}:{NodeId}";
+            return $"{this.Label()}:{NodeId}";
         }
 
         public void Pin()

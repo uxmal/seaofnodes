@@ -33,10 +33,5 @@ namespace SeaOfNodes.Nodes
             writer.Write(" ]");
             return writer;
         }
-
-        protected override Node? Simplify()
-        {
-            return null;
-        }
     }
 }
