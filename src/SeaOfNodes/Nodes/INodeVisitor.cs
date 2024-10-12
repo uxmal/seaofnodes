@@ -6,6 +6,7 @@
         TResult VisitBlockNode(BlockNode block);
         TResult VisitBranchNode(BranchNode branch);
         TResult VisitCallNode(CallNode call);
+        TResult VisitCFProjectionNode(CFProjectionNode projection);
         TResult VisitConstantNode(ConstantNode c);
         TResult VisitDefNode(DefNode def);
         TResult VisitMemoryAccessNode(MemoryAccessNode access);
@@ -28,6 +29,7 @@
         TResult VisitBlockNode(BlockNode block, TContext ctx);
         TResult VisitBranchNode(BranchNode branch, TContext ctx);
         TResult VisitCallNode(CallNode call, TContext ctx);
+        TResult VisitCFProjectionNode(CFProjectionNode projection, TContext ctx);
         TResult VisitConstantNode(ConstantNode c, TContext ctx);
         TResult VisitDefNode(DefNode def, TContext ctx);
         TResult VisitMemoryAccessNode(MemoryAccessNode access, TContext ctx);

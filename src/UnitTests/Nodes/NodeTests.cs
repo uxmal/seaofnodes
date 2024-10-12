@@ -4,9 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using Reko.Core;
 using Reko.Core.Expressions;
 using Reko.Core.Types;
 using SeaOfNodes.Nodes;
+using SeaOfNodes.UnitTests.Loading;
 
 namespace SeaOfNodes.UnitTests.Nodes
 {
@@ -18,7 +20,9 @@ namespace SeaOfNodes.UnitTests.Nodes
         [SetUp]
         public void Setup()
         {
-            factory = new NodeFactory();
+            var arch = new FakeArchitecture();
+            var proc = new Procedure(arch, "", Address.Ptr32(0x42), arch.CreateFrame());
+            factory = new NodeFactory(proc);
         }
 
         private ConstantNode Const(int n)

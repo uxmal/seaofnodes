@@ -64,6 +64,12 @@ public class PeepholeOptimizer : INodeVisitor<Node?>
         throw new NotImplementedException();
     }
 
+    public Node? VisitCFProjectionNode(CFProjectionNode projection)
+    {
+        throw new NotImplementedException();
+    }
+
+
     public Node? VisitConstantNode(ConstantNode c)
     {
         trace.Verbose($"Peep: {c}");
@@ -120,6 +126,12 @@ public class PeepholeOptimizer : INodeVisitor<Node?>
     public Node? VisitStopNode(StopNode stop)
     {
         trace.Verbose(nameof(StopNode));
+        return null;
+    }
+
+    public Node? VisitStoreNode(StoreNode stop)
+    {
+        trace.Verbose(nameof(StoreNode));
         return null;
     }
 

@@ -1,6 +1,8 @@
 ﻿using Reko.Core;
 using Reko.Core.Code;
 using Reko.Core.Expressions;
+using Reko.Core.Graphs;
+using Reko.Core.Types;
 
 namespace SeaOfNodes.UnitTests.Loading;
 
@@ -10,7 +12,8 @@ public class ProcedureBuilder : ExpressionEmitter
 
     private readonly Procedure proc;
     private readonly Dictionary<string, Block> labeledBlocks;
-    private readonly List<(Block, string)> fixups;
+    private readonly List<(Block, string)> localFixups;
+    private readonly List<(Statement, string)> externFixups;
     private Block? blockBranch;
     private Block? blockCur;
     private Address addr;
@@ -21,14 +24,32 @@ public class ProcedureBuilder : ExpressionEmitter
         Address addr)
     {
         this.proc = new Procedure(arch, name, addr, arch.CreateFrame());
-        this.labeledBlocks = new Dictionary<string, Block>();
-        this.fixups = new List<(Block, string)>();
+        this.labeledBlocks = [];
+        this.localFixups = [];
+        this.externFixups = [];
         this.blockCur = null;
         this.addr = addr;
     }
 
-    public Procedure ToProcedure()
+    public Expression FramePointer => proc.Frame.FramePointer;
+
+    public void Fixup(Dictionary<string, Procedure> symbols, CallGraph callgraph)
     {
+        foreach (var (stm, fnName) in externFixups)
+        {
+            var call = (CallInstruction)stm.Instruction;
+            var callee = new ProcedureConstant(
+                proc.Architecture.PointerType,
+                symbols[fnName]);
+            var newCall = new CallInstruction(callee, call.CallSite);
+            newCall.Uses.UnionWith(call.Uses);
+            newCall.Definitions.UnionWith(call.Definitions);
+            stm.Instruction = newCall;
+        }
+    }
+
+    public Procedure ToProcedure()
+    { 
         if (blockCur is not null)
         {
             proc.ControlGraph.AddEdge(blockCur, proc.ExitBlock);
@@ -39,7 +60,7 @@ public class ProcedureBuilder : ExpressionEmitter
 
     private void ResolveFixups()
     {
-        foreach (var (block, label) in fixups)
+        foreach (var (block, label) in localFixups)
         {
             var stm = block.Statements.Last();
             switch (stm.Instruction)
@@ -67,13 +88,19 @@ public class ProcedureBuilder : ExpressionEmitter
         {
             proc.ControlGraph.AddEdge(blockCur, blockNew);
         }
+        if (blockBranch is not null)
+        {
+            proc.ControlGraph.AddEdge(blockBranch, blockNew);
+            blockBranch = null;
+        }
         blockCur = blockNew;
     }
 
-    private void Emit(Instruction instr)
+    private Statement Emit(Instruction instr)
     {
-        EnsureBlock(null).Statements.Add(addr, instr);
+        var stm = EnsureBlock(null).Statements.Add(addr, instr);
         addr += 4;
+        return stm;
     }
 
     private Block EnsureBlock(string? name)
@@ -116,8 +143,9 @@ public class ProcedureBuilder : ExpressionEmitter
     public void Branch(Expression predicate, string label)
     {
         this.blockBranch = EnsureBlock(null);
-        fixups.Add((blockBranch, label));
+        localFixups.Add((blockBranch, label));
         Emit(new Branch(predicate, dummy));
+        blockBranch = blockCur;
         blockCur = null;
     }
 
@@ -129,12 +157,29 @@ public class ProcedureBuilder : ExpressionEmitter
         return new CallBuilder(call);
     }
 
+    public CallBuilder Call(string fnName)
+    {
+        var block = EnsureBlock(null);
+        var site = new CallSite(0, 0);
+        var call = new CallInstruction(InvalidConstant.Create(proc.Architecture.PointerType), site); // Placeholder
+        var stm = Emit(call);
+        externFixups.Add((stm, fnName));
+        return new CallBuilder(call);
+    }
+
     public void Goto(string label)
     {
         var block = EnsureBlock(null);
-        fixups.Add((block, label));
+        localFixups.Add((block, label));
         blockCur = null;
     }
+
+    public void MStore(Expression effectiveAddress, Expression src)
+    {
+        var dst = this.Mem(src.DataType, effectiveAddress);
+        Emit(new Store(dst, src));
+    }
+
     public void Return()
     {
         Emit(new ReturnInstruction());
@@ -155,6 +200,17 @@ public class ProcedureBuilder : ExpressionEmitter
     {
         var id = proc.Frame.EnsureRegister(reg);
         return id;
+    }
+
+    //$TODO: implement this in Reko
+    public MemoryAccess Mem32(Expression baseAddr, long offset)
+    {
+        var cOffset = Constant.Create(
+            PrimitiveType.Create(
+                Domain.SignedInt,
+                baseAddr.DataType.BitSize),
+            offset);
+        return Mem32(IAdd(baseAddr, cOffset));
     }
 
     public class CallBuilder

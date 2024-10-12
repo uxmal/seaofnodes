@@ -76,6 +76,11 @@ namespace SeaOfNodes.Nodes
                 throw new NotImplementedException();
             }
 
+            public bool VisitCFProjectionNode(CFProjectionNode projection, Node other)
+            {
+                throw new NotImplementedException();
+            }
+
             public bool VisitConstantNode(ConstantNode c, Node ctx)
             {
                 throw new NotImplementedException();
@@ -165,6 +170,11 @@ namespace SeaOfNodes.Nodes
             }
 
             public int VisitCallNode(CallNode call)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int VisitCFProjectionNode(CFProjectionNode projection)
             {
                 throw new NotImplementedException();
             }

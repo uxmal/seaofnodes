@@ -127,6 +127,13 @@ namespace SeaOfNodes.Nodes
             return sb.ToString();
         }
 
+        public static string PrettyPrintSsa(Node node, int depth)
+        {
+            var sb = new StringBuilder();
+            PrettyPrintSsa(node, depth, sb);
+            return sb.ToString();
+        }
+
         public static StringBuilder PrettyPrint(Node node, int depth, StringBuilder sb)
         {
             return PrettyPrint(node, depth, false, sb);
@@ -149,7 +156,7 @@ namespace SeaOfNodes.Nodes
                 Node n = rpos[i];
                 if (n.IsCFG() || n.IsMultiHead())
                 {
-                    if (!gap)
+                    if (!gap && n is not CFProjectionNode)
                         sb.AppendLine(); // Blank before multihead
                     WriteLine(n, sb, llvmFormat); // Print head
                     while (--i >= 0)
@@ -168,6 +175,50 @@ namespace SeaOfNodes.Nodes
                 }
             }
             return sb;
+        }
+
+
+        public static StringBuilder PrettyPrintSsa(Node node, int depth, StringBuilder sb)
+        {
+            var ssaLike = new SsaLikePrinter();
+
+            // First, a Breadth First Search at a fixed depth.
+            BFS bfs = new(node, depth);
+            // Convert just that set to a post-order
+            List<Node> rpos = [];
+            BitSet visit = new();
+            for (int i = bfs._lim; i < bfs._bfs.Count; i++)
+                PostOrder(bfs._bfs[i], rpos, visit, bfs._bs);
+            // Reverse the post-order walk
+            bool gap = false;
+            for (int i = rpos.Count - 1; i >= 0; i--)
+            {
+                Node n = rpos[i];
+                if (n.IsCFG() || n.IsMultiHead())
+                {
+                    if (!gap && n is not CFProjectionNode)
+                        sb.AppendLine(); // Blank before multihead
+                    ssaLike.WriteLine(n, sb); // Print head
+                    while (--i >= 0)
+                    {
+                        Node t = rpos[i];
+                        if (!t.IsMultiTail()) { i++; break; }
+                        ssaLike.WriteLine(t, sb);
+                    }
+                    gap = true;
+                }
+                else
+                {
+                    ssaLike.WriteLine(n, sb);
+                    gap = false;
+                }
+            }
+            return sb;
+        }
+
+        private static bool ShouldEmitGap(Node n)
+        {
+            return n is not CFProjectionNode;
         }
 
         private static void PostOrder(Node n, List<Node> rpos, BitSet visit, BitSet bfs)

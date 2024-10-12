@@ -3,15 +3,17 @@ namespace SeaOfNodes.Nodes
 {
     public class ProjectionNode : Node
     {
-        public ProjectionNode(int nodeId, IMultiNode node, int index)
+        private readonly string name;
+        public ProjectionNode(int nodeId, IMultiNode node, int index, string name)
          : base(nodeId, (Node)node)
         {
             this.Index = index;
+            this.name = name;
         }
 
         public int Index { get; }
 
-        protected override string Name => "Proj";
+        protected override string Name => $"{InNodes[0]?.NodeId ?? 0}.{name}";
 
         public override T Accept<T>(INodeVisitor<T> visitor)
         {

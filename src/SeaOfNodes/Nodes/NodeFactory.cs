@@ -13,11 +13,11 @@ namespace SeaOfNodes.Nodes
     {
         private int nextNodeId;
 
-        public NodeFactory()
+        public NodeFactory(Procedure proc)
         {
             // StartNode always has node ID 1. We avoid 0 to detect
             // uninitialized values.
-            this.StartNode = new StartNode(NextId());
+            this.StartNode = new StartNode(NextId(), proc);
             this.StopNode = new StopNode(NextId(), StartNode);
         }
 
@@ -74,9 +74,14 @@ namespace SeaOfNodes.Nodes
             return new ProcedureConstantNode(NextId(), StartNode, pc);
         }
 
-        public Node Project(IMultiNode node, int index)
+        public CFProjectionNode CFProject(IMultiNode node, int index, string name)
         {
-            return new ProjectionNode(NextId(), node, index);
+            return new CFProjectionNode(NextId(), node, index, name);
+        }
+
+        public ProjectionNode Project(IMultiNode node, int index, string name)
+        {
+            return new ProjectionNode(NextId(), node, index, name);
         }
 
         public ReturnNode Return(CFNode ctrlNode)

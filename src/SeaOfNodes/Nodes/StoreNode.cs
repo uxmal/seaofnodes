@@ -2,7 +2,7 @@
 
 namespace SeaOfNodes.Nodes;
 
-public class StoreNode : Node
+public class StoreNode : Node, IMultiNode
 {
     public StoreNode(int nodeId, DataType dt, Node memoryId, Node eaNode, Node srcNode)
         : base(nodeId, memoryId, eaNode, srcNode)

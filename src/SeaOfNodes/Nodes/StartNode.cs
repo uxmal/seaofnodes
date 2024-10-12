@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Reko.Core;
+using SeaOfNodes.Analyses;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,13 +10,15 @@ namespace SeaOfNodes.Nodes
 {
     public class StartNode : CFNode
     {
-        public StartNode(int nodeId)
+        public StartNode(int nodeId, Procedure proc)
             : base(nodeId)
         {
+            this.Procedure = proc;
         }
 
         protected override string Name => "Start";
 
+        public Procedure Procedure { get; }
 
         public override T Accept<T>(INodeVisitor<T> visitor)
         {

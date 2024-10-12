@@ -31,10 +31,10 @@ public class NodeValuePropagator
     /// <returns>A new node graph on which value propagation and dead
     /// node removal has taken place.
     /// </returns>
-    public Node Transform(Node node)
+    public Node Transform(Node startNode)
     {
         var dfs = new DfsIterator<Node>(new GraphAdapter());
-        worklist.AddRange(dfs.PostOrder(node));
+        worklist.AddRange(dfs.PostOrder(startNode));
         while (worklist.TryGetWorkItem(out var n))
         {
             if (n.IsUnused && n is not StopNode)
@@ -49,7 +49,7 @@ public class NodeValuePropagator
                 Replace(n, newNode);
             }
         }
-        return node;
+        return startNode;
     }
 
     /// <summary>

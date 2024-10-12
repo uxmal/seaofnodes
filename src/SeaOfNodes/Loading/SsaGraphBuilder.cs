@@ -1,11 +1,13 @@
 ﻿using Reko.Core;
 using Reko.Core.Expressions;
 using Reko.Core.Lib;
+using Reko.Core.Types;
 using SeaOfNodes.Nodes;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace SeaOfNodes.Loading;
+
 
 public class SsaGraphBuilder
 {
@@ -16,6 +18,7 @@ public class SsaGraphBuilder
     private readonly HashSet<Block> sealedBlocks;
     private readonly Dictionary<StorageDomain, BitRange> definedStorages;
     private readonly Dictionary<(Block, StorageDomain, BitRange), PhiNode> incompletePhis;
+    private readonly Dictionary<StorageDomain, TemporaryStorage> temporaries;
 
     public SsaGraphBuilder(
         IProcessorArchitecture arch,
@@ -29,6 +32,7 @@ public class SsaGraphBuilder
         this.sealedBlocks = [];
         this.definedStorages = [];
         this.incompletePhis = [];
+        this.temporaries = [];
     }
 
     public void EnterBlock(Block block)
@@ -58,10 +62,17 @@ public class SsaGraphBuilder
         Storage? stg;
         if (domain == StorageDomain.Memory)
             stg = MemoryStorage.Instance;
+        else if (temporaries.TryGetValue(domain, out var tmp))
+            stg = tmp;
         else
             stg = arch.GetRegister(domain, range);
         Debug.Assert(stg is not null);
         return stg;
+    }
+
+    private static bool IsTemporary(StorageDomain domain)
+    {
+        return (uint)domain >= unchecked((uint)StorageDomain.Temporary);
     }
 
     public Node WriteStorage(Identifier id, Block block, Node node)
@@ -73,7 +84,6 @@ public class SsaGraphBuilder
     {
         return this.WriteStorage(stg.Domain, stg.GetBitRange(), block, node);
     }
-
 
     public Node WriteStorage(StorageDomain domain, BitRange range, Block block, Node node)
     {
@@ -100,12 +110,14 @@ public class SsaGraphBuilder
             this.definedStorages.Add(domain, range);
         var newRange = range | existingRange;
         this.definedStorages[domain] = newRange;
-
     }
 
     public Node ReadStorage(Identifier id, Block block)
     {
-        return ReadStorage(id.Storage.Domain, id.Storage.GetBitRange(), block);
+        var stg = id.Storage;
+        if (stg is TemporaryStorage tmp)
+            temporaries.TryAdd(stg.Domain, tmp);
+        return ReadStorage(stg.Domain, stg.GetBitRange(), block);
     }
 
     public Node ReadStorage(StorageDomain domain, BitRange range, Block block)
@@ -121,6 +133,8 @@ public class SsaGraphBuilder
         if (preds.Count == 0)
         {
             // Live in parameter.
+            if (domain == StorageDomain.Memory)
+                return factory.StartNode;
             var stg = GetStorage(domain, range);
             var node = factory.Def(stg);
             return node;
@@ -232,7 +246,7 @@ public class SsaGraphBuilder
             iNext = next.Range.Lsb;
             if (iNext > ioffset)
             {
-                var sliceAlias = MakeSlice(range, next.Range, next.Node);
+                var sliceAlias = next;
                 var subNode = ReadStorageRecursive(domain, sliceAlias.Range, block);
                 var a = new StorageAlias(sliceAlias.Range, subNode);
                 frags.Add(a.Node);
@@ -240,9 +254,8 @@ public class SsaGraphBuilder
             }
             else
             {
-                var sliceAlias = MakeSlice(range, next.Range, next.Node);
-                frags.Add(sliceAlias.Node);
-                ioffset = sliceAlias.Range.Msb;
+                frags.Add(next.Node);
+                ioffset = next.Range.Msb;
             }
         }
         Debug.Assert(frags.Count >= 1);
@@ -266,16 +279,16 @@ public class SsaGraphBuilder
     private StorageAlias FindNextFragment(int ioffset, List<StorageAlias> aliases)
     {
         BitRange rangeBest = default;
-        Node? nodeBest = null;
+        StorageAlias aliasBest = default;
         for (int i = 0; i < aliases.Count; ++i)
         {
             var a = aliases[i];
             if (!a.Range.Contains(ioffset))
                 continue;
-            if (nodeBest is null || a.Range.Lsb < rangeBest.Lsb)
+            if (aliasBest.Node is null || a.Range.Lsb < rangeBest.Lsb)
             {
-                rangeBest = a.Range;
-                nodeBest = a.Node;
+                rangeBest = new(ioffset, a.Range.Msb);
+                aliasBest = a;
                 continue;
             }
             if (a.Range.Lsb == rangeBest.Lsb)
@@ -283,23 +296,21 @@ public class SsaGraphBuilder
                 if (a.Range.Extent < rangeBest.Extent)
                 {
                     rangeBest = a.Range;
-                    nodeBest = a.Node;
+                    aliasBest = a;
                 }
             }
         }
-        return new(rangeBest, nodeBest!);
+        if (aliasBest.Node is null)
+            return aliasBest;
+        if (aliasBest.Range == rangeBest)
+            return new(rangeBest, aliasBest.Node);
+        var dt = PrimitiveType.CreateWord(rangeBest.Extent);
+        var slicedNode = factory.Slice(aliasBest.Node, dt, (uint)rangeBest.Msb);
+        return new(rangeBest, slicedNode);
     }
 
     private Storage MakeSubstorage(Storage stg, int ioffset, int v)
     {
-        throw new NotImplementedException();
-    }
-
-    private StorageAlias MakeSlice(BitRange range ,BitRange rangeSub, Node n)
-    {
-        range = range & rangeSub;
-        if (rangeSub == range)
-            return new(range, n);
         throw new NotImplementedException();
     }
 

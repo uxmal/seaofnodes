@@ -144,8 +144,8 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
         Debug.Assert(ctrlNode is not null);
         var predicate = branch.Condition.Accept(this);
         var branchNode = factory.Branch(ctrlNode, predicate);
-        var falseProj = factory.Project(branchNode, 0);
-        var trueProj = factory.Project(branchNode, 1);
+        var falseProj = factory.CFProject(branchNode, 0, "false");
+        var trueProj = factory.CFProject(branchNode, 1, "true");
         AddEdge(falseProj, blockNodes[blockCur.Succ[0]]);
         AddEdge(trueProj, blockNodes[blockCur.Succ[1]]);
         ctrlNode = null;
@@ -297,7 +297,16 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
 
     public Node VisitStore(Store store)
     {
-        throw new NotImplementedException();
+        Debug.Assert(ctrlNode is not null);
+        var srcNode = store.Src.Accept(this);
+        var access = (MemoryAccess) store.Dst;
+        var mid = sgb.ReadStorage(access.MemoryId, blockCur);
+        var eaNode = access.EffectiveAddress.Accept(this);
+        var storeNode = factory.Store(store.Dst.DataType, ctrlNode, eaNode, srcNode);
+        ctrlNode = factory.CFProject(storeNode, 0, "ctrl");
+        var newMem = factory.Project(storeNode, 1, "mem");
+        sgb.WriteStorage(access.MemoryId, blockCur, newMem);
+        return srcNode;
     }
 
     public Node VisitStringConstant(StringConstant str)
