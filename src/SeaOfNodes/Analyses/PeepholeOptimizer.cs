@@ -69,6 +69,11 @@ public class PeepholeOptimizer : INodeVisitor<Node?>
         throw new NotImplementedException();
     }
 
+    public Node? VisitConditionOf(ConditionOfNode cond)
+    {
+        trace.Verbose($"Peep: {cond}");
+        return null;
+    }
 
     public Node? VisitConstantNode(ConstantNode c)
     {

@@ -81,6 +81,11 @@ namespace SeaOfNodes.Nodes
                 throw new NotImplementedException();
             }
 
+            public bool VisitConditionOf(ConditionOfNode cond, Node ctx)
+            {
+                throw new NotImplementedException();
+            }
+
             public bool VisitConstantNode(ConstantNode c, Node ctx)
             {
                 throw new NotImplementedException();
@@ -175,6 +180,11 @@ namespace SeaOfNodes.Nodes
             }
 
             public int VisitCFProjectionNode(CFProjectionNode projection)
+            {
+                throw new NotImplementedException();
+            }
+
+            public int VisitConditionOf(ConditionOfNode c)
             {
                 throw new NotImplementedException();
             }

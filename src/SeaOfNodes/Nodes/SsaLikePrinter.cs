@@ -80,6 +80,17 @@ public class SsaLikePrinter
         return sb;
     }
 
+    public StringBuilder VisitConditionOf(ConditionOfNode cond, StringBuilder sb)
+    {
+        sb.Append("    ");
+        sb.Append(RenderVar(cond.NodeId));
+        sb.Append(" = ");
+        sb.Append("cond(");
+        sb.Append(Render(cond.InNodes[1]!));
+        sb.AppendLine(")");
+        return sb;
+    }
+
     public StringBuilder VisitConstantNode(ConstantNode c, StringBuilder sb)
     {
         //sb.AppendLine($"    {RenderVar(c.NodeId)} = {c.Value}");

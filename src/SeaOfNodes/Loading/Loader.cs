@@ -181,7 +181,9 @@ public class Loader : InstructionVisitor<Node>, ExpressionVisitor<Node>
 
     public Node VisitConditionOf(ConditionOf cof)
     {
-        throw new NotImplementedException();
+        var expr = cof.Expression.Accept(this);
+        var node = factory.ConditionOf(cof, expr);
+        return node;
     }
 
     public Node VisitConstant(Constant c)
