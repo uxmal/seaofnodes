@@ -213,6 +213,14 @@ public class ProcedureBuilder : ExpressionEmitter
         return Mem32(IAdd(baseAddr, cOffset));
     }
 
+    public Identifier FlagGroup(
+        RegisterStorage statusReg, 
+        uint flags,
+        string name)
+    {
+        return proc.Frame.EnsureFlagGroup(statusReg, flags, name, statusReg.DataType);
+    }
+
     public class CallBuilder
     {
         private CallInstruction call;

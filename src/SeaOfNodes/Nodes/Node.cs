@@ -1,4 +1,5 @@
 ﻿using SeaOfNodes.Types;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 
 namespace SeaOfNodes.Nodes
